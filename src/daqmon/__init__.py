@@ -21,7 +21,7 @@ class Attribute:
     unit: Optional[str]  #: Measurement unit
     format_: str  #: Format string, e.g. %s for strings, %d for integers, %.2f for floats
     type_: str  #: Type: dateTime, int16, unit16, int32, uint32, int64, float32, float64 or string
-    soft_limits: Tuple[Optional[float], Optional[float]] = (0, None)  #: Min/max values
+    soft_limits: Tuple[Optional[float], Optional[float]] = (None, None)  #: Min/max values
     diagram_scale: str = "lin"  #: Diagram scale: lin or log
 
 
