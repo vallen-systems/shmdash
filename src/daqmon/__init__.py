@@ -181,6 +181,13 @@ class DaqMonInterface:
     """DaqMon interface."""
 
     def __init__(self, url: str, api_key: str):
+        """
+        Initialize DaqMon interface.
+
+        Args:
+            url: Base URL to dashboard server, e.g. https://shmdash.de
+            api_key: API key
+        """
         logger.info(f"Initialize DaqMon interface: {url}")
 
         self._url_api = urljoin(url, "/upload/vjson/v1/")
@@ -256,16 +263,24 @@ class DaqMonInterface:
 
     @connection_exception_handling
     async def get_attributes(self) -> List[Attribute]:
+        """Get list of existing attributes."""
         setup = await self._get_setup()
         return list(Attribute.from_dict(setup["attributes"]))
 
     @connection_exception_handling
     async def get_virtual_channels(self) -> List[VirtualChannel]:
+        """Get list of existing virtual channels."""
         setup = await self._get_setup()
         return list(VirtualChannel.from_dict(setup["virtual_channels"]))
 
     @connection_exception_handling
     async def add_attribute(self, attribute: Attribute):
+        """
+        Add attribute / channel.
+
+        Args:
+            attribute: Attribute definition
+        """
         existing = {a.identifier: a for a in await self.get_attributes()}
         if attribute.identifier in existing:
             logger.info(f"Attribute {attribute.identifier} already exists")
@@ -287,6 +302,12 @@ class DaqMonInterface:
 
     @connection_exception_handling
     async def add_virtual_channel(self, virtual_channel: VirtualChannel):
+        """
+        Add virtual channel / channel group.
+
+        Args:
+            virtual_channel: Virtual channel definition
+        """
         existing = {vc.identifier: vc for vc in await self.get_virtual_channels()}
         if virtual_channel.identifier in existing:
             logger.info(f"Virtual channel {virtual_channel.identifier} already exists")
@@ -348,8 +369,16 @@ class DaqMonInterface:
 
     @connection_exception_handling
     async def upload_data(
-        self, virtual_channel_id: str, data: Sequence[UploadData], chunksize: int = 2000
+        self, virtual_channel_id: str, data: Sequence[UploadData], chunksize: int = 128
     ):
+        """
+        Upload data to virtual channel.
+
+        Args:
+            virtual_channel_id: Identifier of virtual channel
+            data: List of data to upload
+            chunksize: Default chunksize (chunksize will be reduced on errors)
+        """
         def chunks(lst, n):
             """Yield successive n-sized chunks from lst."""
             for i in range(0, len(lst), n):
@@ -379,5 +408,6 @@ class DaqMonInterface:
             await self._check_and_handle_errors(response)
 
     async def close(self):
+        """Close session."""
         logger.debug("Close DaqMon HTTP client session")
         await self._session.close()
