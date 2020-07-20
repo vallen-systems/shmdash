@@ -4,7 +4,7 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 from urllib.parse import urljoin
 
 import aiohttp
@@ -14,24 +14,75 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Attribute:
-    """Attribute / channel defintion."""
+    """
+    Attribute / channel defintion.
+
+    Data structure for the JSON/dict representation:
+    {
+        "AbsDateTime": {
+            "descr": "Absolutetime in ISO8601, UTC Zone (max. μs)",
+            "unit": None,
+            "type": "dateTime",
+            "format": "YYYY-MM-DDThh:mm:ss[.ssssss]Z",
+            "softLimits": [0, None],
+            "diagramScale": "lin",
+        }
+    }
+    """
 
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 char)
     desc: str  #: Channel description
     unit: Optional[str]  #: Measurement unit
-    format_: str  #: Format string, e.g. %s for strings, %d for integers, %.2f for floats
     type_: str  #: Type: dateTime, int16, unit16, int32, uint32, int64, float32, float64 or string
+    format_: str  #: Format string, e.g. %s for strings, %d for integers, %.2f for floats
     soft_limits: Tuple[Optional[float], Optional[float]] = (None, None)  #: Min/max values
     diagram_scale: str = "lin"  #: Diagram scale: lin or log
+
+    @classmethod
+    def from_dict(cls, attributes_dict: Dict[str, Dict[str, Any]]) -> Iterator["Attribute"]:
+        """Create `Attribute` from parsed JSON dict."""
+        for identifier, dct in attributes_dict.items():
+            yield cls(
+                identifier=identifier,
+                desc=dct["descr"],
+                unit=dct.get("unit"),
+                type_=dct["type"],
+                format_=dct["format"],
+                soft_limits=dct.get("softLimits", (None, None)),
+                diagram_scale=dct.get("diagramScale", "lin"),
+            )
+
+    def to_dict(self) -> Dict[str, Dict[str, Any]]:
+        """Convert into dict for JSON representation."""
+        return {
+            self.identifier: dict(
+                descr=self.desc,
+                unit=self.unit,
+                type=self.type_,
+                format=self.format_,
+                softLimits=self.soft_limits,
+                diagramScale=self.diagram_scale,
+            )
+        }
 
 
 @dataclass
 class VirtualChannel:
-    """Virtual channel / channel group definition."""
+    """
+    Virtual channel / channel group definition.
+
+    Data structure for the JSON/dict representation:
+    "1": {
+        "name": "Control Signal",
+        "descr": "Control signal voltage",
+        "attributes": ["AbsDateTime", "DSET", "VOLTAGE"],
+        "prop": ["STREAM", "PAR"]
+    }
+    """
 
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 char) VAE requires int
     name: str  #: Channel group name
-    desc: str  #: Channel group description
+    desc: Optional[str]  #: Channel group description
     #: List of assigned attribute / channel identifiers.
     #: Following channels have specific meaning: AbsDateTime, DSET, X, Y
     #: Following statistics can be applied:
@@ -42,6 +93,29 @@ class VirtualChannel:
     #: - used in VAE: HIT, PAR, ...
     #: Use for example: [STREAM, HIT]
     properties: Optional[List[str]] = None
+
+    @classmethod
+    def from_dict(cls, attributes_dict: Dict[str, Dict[str, Any]]) -> Iterator["VirtualChannel"]:
+        """Create `VirtualChannel` from parsed JSON dict."""
+        for identifier, dct in attributes_dict.items():
+            yield cls(
+                identifier=str(identifier),
+                name=dct["name"],
+                desc=dct.get("descr"),
+                attributes=dct["attributes"],
+                properties=dct.get("prop"),
+            )
+
+    def to_dict(self) -> Dict[str, Dict[str, Any]]:
+        """Convert into dict for JSON representation."""
+        return {
+            self.identifier: dict(
+                name=self.name,
+                descr=self.desc,
+                attributes=self.attributes,
+                prop=self.properties,
+            )
+        }
 
 
 @dataclass
@@ -183,32 +257,12 @@ class DaqMonInterface:
     @connection_exception_handling
     async def get_attributes(self) -> List[Attribute]:
         setup = await self._get_setup()
-        return [
-            Attribute(
-                identifier=k,
-                desc=v.get("descr"),
-                unit=v.get("unit"),
-                format_=v.get("format"),
-                type_=v.get("type"),
-                soft_limits=v.get("softLimits"),
-                diagram_scale=v.get("diagramScale", "lin"),
-            )
-            for k, v in setup["attributes"].items()
-        ]
+        return list(Attribute.from_dict(setup["attributes"]))
 
     @connection_exception_handling
     async def get_virtual_channels(self) -> List[VirtualChannel]:
         setup = await self._get_setup()
-        return [
-            VirtualChannel(
-                identifier=k,
-                name=v.get("name"),
-                desc=v.get("desc"),
-                attributes=v.get("attributes"),
-                properties=v.get("prop"),
-            )
-            for k, v in setup["virtual_channels"].items()
-        ]
+        return list(VirtualChannel.from_dict(setup["virtual_channels"]))
 
     @connection_exception_handling
     async def add_attribute(self, attribute: Attribute):
@@ -223,12 +277,7 @@ class DaqMonInterface:
                 dict(
                     cmdName="addAttribute",
                     attributeId=attribute.identifier,
-                    descr=attribute.desc,
-                    unit=attribute.unit,
-                    format=attribute.format_,
-                    type=attribute.type_,
-                    softLimits=attribute.soft_limits,
-                    diagramScale=attribute.diagram_scale,
+                    **attribute.to_dict()[attribute.identifier],
                 )
             ]
         )
@@ -249,10 +298,7 @@ class DaqMonInterface:
                 dict(
                     cmdName="addVirtualChannel",
                     virtualChannelId=virtual_channel.identifier,
-                    name=virtual_channel.name,
-                    descr=virtual_channel.desc,
-                    attributes=virtual_channel.attributes,
-                    prop=virtual_channel.properties,
+                    **virtual_channel.to_dict()[virtual_channel.identifier],
                 )
             ]
         )
