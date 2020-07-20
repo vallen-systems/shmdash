@@ -22,7 +22,7 @@ EXTRAS_REQUIRE["dev"] = EXTRAS_REQUIRE["tests"] + EXTRAS_REQUIRE["tools"]
 
 setup(
     name="daqmon",
-    version="0.1.0",
+    version="0.2.0",
     description="DaqMon (Data Acquisition and Monitoring) interface for Vallen Systeme dashboards",
     author="Lukas Berbuer (Vallen Systeme GmbH)",
     author_email="software@vallen.de",
