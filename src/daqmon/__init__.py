@@ -262,6 +262,30 @@ class DaqMonInterface:
         return False
 
     @connection_exception_handling
+    async def setup(
+        self, attributes: Sequence[Attribute], virtual_channels: Sequence[VirtualChannel]
+    ):
+        """Upload setup."""
+        def merge_dicts(*dcts):
+            result = {}
+            for dct in dcts:
+                result.update(dct)
+            return result
+
+        logger.info("Upload setup to DaqMon server...")
+        query_dict = dict(
+            attributes=merge_dicts(
+                *(attribute.to_dict() for attribute in attributes)
+            ),
+            virtual_channels=merge_dicts(
+                *(virtual_channel.to_dict() for virtual_channel in virtual_channels)
+            ),
+        )
+        query_json = json.dumps(query_dict)
+        async with self._session.post(self._url_setup, data=query_json) as response:
+            await self._check_and_handle_errors(response)
+
+    @connection_exception_handling
     async def get_attributes(self) -> List[Attribute]:
         """Get list of existing attributes."""
         setup = await self._get_setup()
