@@ -172,6 +172,15 @@ class DaqMonInterface:
             return await response.json()
 
     @connection_exception_handling
+    async def has_setup(self) -> bool:
+        """Check if an setup already exists."""
+        setup = await self._get_setup()
+        for values in (setup["attributes"], setup["virtual_channels"]):
+            if values:
+                return True
+        return False
+
+    @connection_exception_handling
     async def get_attributes(self) -> List[Attribute]:
         setup = await self._get_setup()
         return [
