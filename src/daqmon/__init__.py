@@ -109,6 +109,7 @@ class VirtualChannel:
     def to_dict(self) -> Dict[str, Dict[str, Any]]:
         """Convert into dict for JSON representation."""
         return {
+            # fmt: off
             self.identifier: dict(
                 name=self.name,
                 descr=self.desc,
@@ -266,6 +267,7 @@ class DaqMonInterface:
         self, attributes: Sequence[Attribute], virtual_channels: Sequence[VirtualChannel]
     ):
         """Upload setup."""
+
         def merge_dicts(*dcts):
             result = {}
             for dct in dcts:
@@ -274,6 +276,7 @@ class DaqMonInterface:
 
         logger.info("Upload setup to DaqMon server...")
         query_dict = dict(
+            # fmt: off
             attributes=merge_dicts(
                 *(attribute.to_dict() for attribute in attributes)
             ),
@@ -410,6 +413,7 @@ class DaqMonInterface:
             data: List of data to upload
             chunksize: Default chunksize (chunksize will be reduced on errors)
         """
+
         def chunks(lst, n):
             """Yield successive n-sized chunks from lst."""
             for i in range(0, len(lst), n):

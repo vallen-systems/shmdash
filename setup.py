@@ -7,10 +7,10 @@ INSTALL_REQUIRES = [
 EXTRAS_REQUIRE = {
     "tests": [
         "pytest",
-        "coverage<5.0",
+        "coverage>=5",  # pyproject.toml support
     ],
     "tools": [
-        "tox",
+        "tox>=3.4",  # pyproject.toml support
         "pylint>=2.5",  # pyproject.toml support
         "mypy",
         "black",
@@ -22,7 +22,7 @@ EXTRAS_REQUIRE["dev"] = EXTRAS_REQUIRE["tests"] + EXTRAS_REQUIRE["tools"]
 
 setup(
     name="daqmon",
-    version="0.2.0",
+    version="0.2.1",
     description="DaqMon (Data Acquisition and Monitoring) interface for Vallen Systeme dashboards",
     author="Lukas Berbuer (Vallen Systeme GmbH)",
     author_email="software@vallen.de",
