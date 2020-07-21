@@ -378,6 +378,13 @@ class DaqMonInterface:
             response_dict = await response.json()
 
             for identifier, results in response_dict.items():
+                unsuccessful_uploads = len(data) - results["success"]
+                if unsuccessful_uploads > 0:
+                    logger.warning(
+                        f"Ignored {unsuccessful_uploads}/{len(data)} uploads to virtual channel "
+                        f"{identifier}: Timestamps already exist"
+                    )
+
                 if "error" not in results:
                     continue
 
