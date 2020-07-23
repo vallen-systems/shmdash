@@ -336,7 +336,7 @@ class DaqMonInterface:
             virtual_channel: Virtual channel definition
         """
         existing = {vc.identifier: vc for vc in await self.get_virtual_channels()}
-        if virtual_channel.identifier in existing:
+        if str(virtual_channel.identifier) in existing:
             logger.info(f"Virtual channel {virtual_channel.identifier} already exists")
             return
 
