@@ -381,7 +381,7 @@ class DaqMonInterface:
             response_dict = await response.json()
 
             for identifier, results in response_dict.items():
-                unsuccessful_uploads = len(data) - results["success"]
+                unsuccessful_uploads = len(data) - results.get("success", len(data))
                 if unsuccessful_uploads > 0:
                     logger.warning(
                         f"Ignored {unsuccessful_uploads}/{len(data)} uploads to virtual channel "
