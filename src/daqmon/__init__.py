@@ -318,7 +318,7 @@ class DaqMonInterface:
             commands=[
                 dict(
                     cmdName="addAttribute",
-                    attributeId=attribute.identifier,
+                    attributeId=str(attribute.identifier),
                     **attribute.to_dict()[attribute.identifier],
                 )
             ]
@@ -345,7 +345,7 @@ class DaqMonInterface:
             commands=[
                 dict(
                     cmdName="addVirtualChannel",
-                    virtualChannelId=virtual_channel.identifier,
+                    virtualChannelId=str(virtual_channel.identifier),
                     **virtual_channel.to_dict()[virtual_channel.identifier],
                 )
             ]
