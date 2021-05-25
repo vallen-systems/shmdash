@@ -371,6 +371,31 @@ class DaqMonInterface:
             await self._check_and_handle_errors(response)
 
     @connection_exception_handling
+    async def add_virtual_channel_attributes(
+        self, virtual_channel_id: str, attribute_ids: Sequence[str]
+    ):
+        """
+        Add attributes to existing virtual channel.
+
+        Args:
+            virtual_channel_id: Virtual channel identifier
+            attribute_ids: Attribute identifiers
+        """
+        logger.info(f"Add attributes {attribute_ids} to virtual channel {virtual_channel_id}")
+        query_dict = dict(
+            commands=[
+                dict(
+                    cmdName="addVirtualChannelAttributes",
+                    virtualChannelId=str(virtual_channel_id),
+                    attributes=attribute_ids,
+                )
+            ]
+        )
+        query_json = json.dumps(query_dict)
+        async with self._session.post(self._url_commands, data=query_json) as response:
+            await self._check_and_handle_errors(response)
+
+    @connection_exception_handling
     async def _upload_data_chunk(self, virtual_channel_id: str, data: Sequence[UploadData]):
         def convert_datetime(timestamp):
             return timestamp.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
