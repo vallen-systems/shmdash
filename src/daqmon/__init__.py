@@ -295,10 +295,26 @@ class DaqMonInterface:
         return list(Attribute.from_dict(setup["attributes"]))
 
     @connection_exception_handling
+    async def get_attribute(self, attribute_id: str) -> Optional[Attribute]:
+        """Get attribute by identifier."""
+        return next(
+            filter(lambda a: a.identifier == attribute_id, await self.get_attributes()),
+            None,
+        )
+
+    @connection_exception_handling
     async def get_virtual_channels(self) -> List[VirtualChannel]:
         """Get list of existing virtual channels."""
         setup = await self._get_setup()
         return list(VirtualChannel.from_dict(setup["virtual_channels"]))
+
+    @connection_exception_handling
+    async def get_virtual_channel(self, virtual_channel_id: str) -> Optional[VirtualChannel]:
+        """Get virtual channel by identifier."""
+        return next(
+            filter(lambda a: a.identifier == virtual_channel_id, await self.get_virtual_channels()),
+            None,
+        )
 
     @connection_exception_handling
     async def add_attribute(self, attribute: Attribute):
