@@ -169,11 +169,11 @@ def connection_exception_handling(func):
         try:
             return await func(*args, **kwargs)
         except asyncio.TimeoutError:
-            raise ConnectionError("Timeout error")
+            raise ConnectionError("Timeout error") from None
         except aiohttp.ServerConnectionError as e:
-            raise ConnectionError(str(e) if str(e) else "Server connection error")
+            raise ConnectionError(str(e) if str(e) else "Server connection error") from None
         except aiohttp.ClientConnectionError as e:
-            raise ConnectionError(str(e) if str(e) else "Client connection error")
+            raise ConnectionError(str(e) if str(e) else "Client connection error") from None
 
     return async_wrapper
 
@@ -199,7 +199,10 @@ class DaqMonInterface:
         logger.debug("Open DaqMon HTTP client session")
         self._session = aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(verify_ssl=False),  # SSL verification problems on cWave
-            headers={"content-type": "application/json", "UPLOAD-API-KEY": api_key,},
+            headers={
+                "content-type": "application/json",
+                "UPLOAD-API-KEY": api_key,
+            },
             timeout=aiohttp.ClientTimeout(total=60),
         )
 

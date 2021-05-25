@@ -2,6 +2,7 @@ from setuptools import setup, find_packages
 
 INSTALL_REQUIRES = [
     "aiohttp",
+    "dataclasses>=0.6; python_version<'3.7'", 
 ]
 
 EXTRAS_REQUIRE = {
