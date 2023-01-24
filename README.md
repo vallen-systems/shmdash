@@ -1,17 +1,28 @@
-# pyDaqMon
+# SHMdash
 
-DaqMon (Data Acquisition and Monitoring) interface for Vallen Systeme dashboards (www.shmdash.de).
+Python client library for Vallen Systeme Dashboard (SHM Dash).
 
-## Install
+## Installation
+
+Install the latest version from Git:
 
 ```
-git clone http://v-db:3000/lb/pyDaqMon
-cd pyDaqMon
+pip install 'shmdash @ git+https://github.com/vallen-systems/pySHMdash'
+```
+
+## Development setup
+
+```sh
+# Clone repository
+git clone https://github.com/vallen-systems/pySHMdash
+cd pySHMdash
+
+# Install package and development tools
 pip install -e .[dev]
-```
 
-Run test suite:
+# Install the git hook scripts
+pre-commit install
 
-```
+# Run checks & tests with tox
 tox
 ```

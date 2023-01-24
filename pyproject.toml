@@ -1,78 +1,128 @@
+[build-system]
+requires = ["setuptools>=61", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shmdash"
+version = "0.4.0"
+description = "Vallen Systeme Dashboard (SHM Dash) upload client"
+authors = [
+    { name = "Lukas Berbuer (Vallen Systeme GmbH)", email = "lukas.berbuer@vallen.de" },
+]
+readme = "README.md"
+license = { text = "MIT License" }
+requires-python = ">=3.7"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+keywords = ["vallen", "shmdash", "dashboard", "upload", "client"]
+dependencies = ["aiohttp~=3.7"]
+
+[project.optional-dependencies]
+tests = [
+    "pytest>=6", # pyproject.toml support
+    "coverage[toml]>=5", # pyproject.toml support
+
+]
+tools = [
+    "black",
+    "isort",
+    "pylint>=2.5", # pyproject.toml support
+    "mypy>=0.9", # pyproject.toml support
+    "tox>=3.4", # pyproject.toml support
+
+]
+dev = ["shmdash[tests,tools]"] # recursive dependency since pip 21.2
+
+[project.urls]
+Source = "https://github.com/vallen-systems/pySHMdash"
+Issues = "https://github.com/vallen-systems/pySHMdash/issues"
+
 [tool.black]
 line-length = 100
+
+[tool.isort]
+profile = "black"
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.message_control]
+good-names = ["logger", "e", "i", "j", "k", "n", "m", "e"]
+disable = [
+    "import-error",
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "logging-fstring-interpolation",
+]
 
 [tool.mypy]
 ignore_missing_imports = true
 
-[tool.pylint.message_control]
-disable = """
-    import-error,
-    bad-continuation,
-    missing-module-docstring,
-    missing-function-docstring,
-    logging-fstring-interpolation,
-"""
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q" # test summary for (a)ll except passed
+testpaths = ["tests"]
+log_cli = true
+log_cli_level = "WARNING"
 
-[tool.pylint.format]
-max-line-length = 100
-good-names = """
-    logger,
-    i, j, k, n, m,
-    e,
-"""
+[tool.coverage.run]
+branch = true
+source = ["shmdash"]
 
-[tool.isort]
-line_length = 100
-multi_line_output = 3
-include_trailing_comma = true
-use_parentheses = true
+[tool.coverage.paths]
+source = ["src", ".tox/*/site-packages"]
 
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = pylint, mypy, black, isort, py36, py37, py38, coverage-report
-
-[testenv:pylint]
-skip_install = true
-deps = pylint
-commands = pylint src/
-
-[testenv:mypy]
-skip_install = true
-deps = mypy
-commands = mypy src/
+envlist = black, isort, pylint, mypy, py37, py38, p39, py310, py311, coverage-report
 
 [testenv:black]
 skip_install = true
 deps = black
 commands =
-    black --diff src/
-    black --check src/
+    black --diff .
+    black --check .
 
 [testenv:isort]
 skip_install = true
-deps = isort>5
+deps = isort
 commands =
-    isort --diff src/
-    isort --check-only src/
+    isort --diff .
+    isort --check-only .
+
+[testenv:pylint]
+skip_install = true
+deps = pylint
+commands = pylint ./src/
+
+[testenv:mypy]
+skip_install = true
+deps = mypy>=0.9
+commands =
+    mypy ./src/
 
 [testenv]
 extras = tests
-deps = toml
 commands = 
     coverage run --parallel -m pytest
 
 [testenv:coverage-report]
-extras = tests
-deps = toml
+skip_install = true
+deps = coverage[toml]>=5
 commands =
-    coverage combine
+    - coverage combine
     coverage report
 """
-
-[tool.coverage.run]
-branch = true
-source = ["daqmon"]
-
-[tool.coverage.paths]
-source = ["src", ".tox/*/site-packages"]

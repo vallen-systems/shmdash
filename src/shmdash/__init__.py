@@ -178,25 +178,25 @@ def connection_exception_handling(func):
     return async_wrapper
 
 
-class DaqMonInterface:
-    """DaqMon interface."""
+class Client:
+    """SHM Dash client."""
 
     def __init__(self, url: str, api_key: str):
         """
-        Initialize DaqMon interface.
+        Initialize SHM Dash client.
 
         Args:
             url: Base URL to dashboard server, e.g. https://shmdash.de
             api_key: API key
         """
-        logger.info(f"Initialize DaqMon interface: {url}")
+        logger.info(f"Initialize SHM Dash client: {url}")
 
         self._url_api = urljoin(url, "/upload/vjson/v1/")
         self._url_setup = urljoin(self._url_api, "setup")
         self._url_data = urljoin(self._url_api, "data")
         self._url_commands = urljoin(self._url_api, "commands")
 
-        logger.debug("Open DaqMon HTTP client session")
+        logger.debug("Open SHM Dash HTTP client session")
         self._session = aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(verify_ssl=False),  # SSL verification problems on cWave
             headers={
@@ -277,7 +277,7 @@ class DaqMonInterface:
                 result.update(dct)
             return result
 
-        logger.info("Upload setup to DaqMon server...")
+        logger.info("Upload setup to SHM Dash server...")
         query_dict = dict(
             # fmt: off
             attributes=merge_dicts(
@@ -488,5 +488,5 @@ class DaqMonInterface:
 
     async def close(self):
         """Close session."""
-        logger.debug("Close DaqMon HTTP client session")
+        logger.debug("Close SHM Dash HTTP client session")
         await self._session.close()

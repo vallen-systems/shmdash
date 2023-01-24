@@ -1,4 +1,4 @@
-from daqmon import Attribute, VirtualChannel
+from shmdash import Attribute, VirtualChannel
 
 
 def test_attribute():
