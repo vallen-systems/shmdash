@@ -83,6 +83,8 @@ VIRTUAL_CHANNELS = [
 
 async def main():
     async with Client(URL, API_KEY) as client:
+        # delete all data
+        # await client.delete_data()
         # delete all data and setups
         # await client.recreate()
 

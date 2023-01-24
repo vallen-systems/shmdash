@@ -178,7 +178,7 @@ def connection_exception_handling(func):
 
 
 async def check_response(response: aiohttp.ClientResponse):
-    """Check HTTP client response and handle erros."""
+    """Check HTTP client response and handle errors."""
     status = response.status  # e.g. 401
     status_class = status // 100 * 100  # e.g. 400
 
@@ -488,11 +488,23 @@ class Client:
                 await self.upload_data(virtual_channel_id, data_chunk, chunksize=new_chunksize)
 
     @connection_exception_handling
+    async def delete_data(self):
+        """
+        Delete all time-series data.
+
+        Data of other upload sources (different API keys) won't be affected.
+        """
+        logger.warning("Delete all data")
+        url = urljoin(self._url_api, "/dev/timeseriesdata")
+        async with self._session.delete(url) as response:
+            await check_response(response)
+
+    @connection_exception_handling
     async def recreate(self):
         """
         Delete all time-series data and setup information.
 
-        Data and setups of other upload sources (different API keys) will not be affected.
+        Data and setups of other upload sources (different API keys) won't be affected.
         """
         logger.warning("Delete all data and setup information")
         url = urljoin(self._url_api, "/dev/recreate")
