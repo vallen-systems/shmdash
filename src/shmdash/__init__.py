@@ -227,13 +227,14 @@ def _merge_dicts(*dcts):
 class Client:
     """SHM Dash client."""
 
-    def __init__(self, url: str, api_key: str):
+    def __init__(self, url: str, api_key: str, *, verify_ssl=False):
         """
         Initialize SHM Dash client.
 
         Args:
             url: Base URL to dashboard server, e.g. https://shmdash.de
             api_key: API key
+            verify_ssl: Check SSL certifications
         """
         logger.info(f"Initialize SHM Dash client: {url}")
 
@@ -244,7 +245,7 @@ class Client:
 
         logger.debug("Open SHM Dash HTTP client session")
         self._session = aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(verify_ssl=False),  # SSL verification problems on cWave
+            connector=aiohttp.TCPConnector(verify_ssl=verify_ssl),
             headers={
                 "content-type": "application/json",
                 "UPLOAD-API-KEY": api_key,
