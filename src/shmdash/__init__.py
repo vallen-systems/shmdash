@@ -251,7 +251,7 @@ class Client:
         raise RuntimeError(f"Uncaught error: {error_message}")
 
     @connection_exception_handling
-    async def _get_setup(self):
+    async def get_setup(self) -> Dict:
         async with self._session.get(self._url_setup) as response:
             await self._check_and_handle_errors(response)
             return await response.json()
@@ -259,7 +259,7 @@ class Client:
     @connection_exception_handling
     async def has_setup(self) -> bool:
         """Check if an setup already exists."""
-        setup = await self._get_setup()
+        setup = await self.get_setup()
         for values in (setup["attributes"], setup["virtual_channels"]):
             if values:
                 return True
@@ -294,7 +294,7 @@ class Client:
     @connection_exception_handling
     async def get_attributes(self) -> List[Attribute]:
         """Get list of existing attributes."""
-        setup = await self._get_setup()
+        setup = await self.get_setup()
         return list(Attribute.from_dict(setup["attributes"]))
 
     @connection_exception_handling
@@ -308,7 +308,7 @@ class Client:
     @connection_exception_handling
     async def get_virtual_channels(self) -> List[VirtualChannel]:
         """Get list of existing virtual channels."""
-        setup = await self._get_setup()
+        setup = await self.get_setup()
         return list(VirtualChannel.from_dict(setup["virtual_channels"]))
 
     @connection_exception_handling
