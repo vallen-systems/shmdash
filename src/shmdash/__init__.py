@@ -178,6 +178,45 @@ def connection_exception_handling(func):
     return async_wrapper
 
 
+async def check_response(response: aiohttp.ClientResponse):
+    """Check HTTP client response and handle erros."""
+    status = response.status  # e.g. 401
+    status_class = status // 100 * 100  # e.g. 400
+
+    if status_class == 200:
+        return
+
+    response_text = await response.text()
+    try:
+        response_dict = json.loads(response_text)
+    except ValueError:
+        response_dict = {}
+
+    error_message = "HTTP {code} error for {method} request {url}: {message}".format(
+        code=status,
+        method=response.method,
+        url=response.url,
+        message=response_dict.get("message", response_text),  # JSON dict with message expected
+    )
+
+    if status_class == 300:
+        raise RedirectionError(error_message)
+
+    if status_class == 400:
+        if status == 400:
+            raise BadRequestError(error_message)
+        if status == 401:
+            raise UnauthorizedError(error_message)
+        raise ClientError(error_message)
+
+    if status_class == 500:
+        if "PayloadTooLargeError" in response_dict.get("message", ""):
+            raise PayloadTooLargeError(error_message)
+        raise ServerError(error_message)
+
+    raise RuntimeError(f"Uncaught error: {error_message}")
+
+
 class Client:
     """SHM Dash client."""
 
@@ -212,58 +251,17 @@ class Client:
     async def __aexit__(self, exc_type, exc, traceback):
         await self.close()
 
-    @staticmethod
-    async def _check_and_handle_errors(response: aiohttp.ClientResponse):
-        status = response.status  # e.g. 401
-        status_class = status // 100 * 100  # e.g. 400
-
-        if status_class == 200:
-            return
-
-        response_text = await response.text()
-        try:
-            response_dict = json.loads(response_text)
-        except ValueError:
-            response_dict = {}
-
-        error_message = "HTTP {code} error for {method} request {url}: {message}".format(
-            code=status,
-            method=response.method,
-            url=response.url,
-            message=response_dict.get("message", response_text),  # JSON dict with message expected
-        )
-
-        if status_class == 300:
-            raise RedirectionError(error_message)
-
-        if status_class == 400:
-            if status == 400:
-                raise BadRequestError(error_message)
-            if status == 401:
-                raise UnauthorizedError(error_message)
-            raise ClientError(error_message)
-
-        if status_class == 500:
-            if "PayloadTooLargeError" in response_dict.get("message", ""):
-                raise PayloadTooLargeError(error_message)
-            raise ServerError(error_message)
-
-        raise RuntimeError(f"Uncaught error: {error_message}")
-
     @connection_exception_handling
     async def get_setup(self) -> Dict:
         async with self._session.get(self._url_setup) as response:
-            await self._check_and_handle_errors(response)
+            await check_response(response)
             return await response.json()
 
     @connection_exception_handling
     async def has_setup(self) -> bool:
         """Check if an setup already exists."""
         setup = await self.get_setup()
-        for values in (setup["attributes"], setup["virtual_channels"]):
-            if values:
-                return True
-        return False
+        return bool(setup["attributes"]) and bool(setup["virtual_channels"])
 
     @connection_exception_handling
     async def setup(
@@ -289,7 +287,7 @@ class Client:
         )
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_setup, data=query_json) as response:
-            await self._check_and_handle_errors(response)
+            await check_response(response)
 
     @connection_exception_handling
     async def get_attributes(self) -> List[Attribute]:
@@ -344,7 +342,7 @@ class Client:
         )
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await self._check_and_handle_errors(response)
+            await check_response(response)
 
     @connection_exception_handling
     async def add_virtual_channel(self, virtual_channel: VirtualChannel):
@@ -371,7 +369,7 @@ class Client:
         )
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await self._check_and_handle_errors(response)
+            await check_response(response)
 
     @connection_exception_handling
     async def add_virtual_channel_attributes(
@@ -396,7 +394,7 @@ class Client:
         )
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await self._check_and_handle_errors(response)
+            await check_response(response)
 
     @connection_exception_handling
     async def _upload_data_chunk(self, virtual_channel_id: str, data: Sequence[UploadData]):
@@ -410,7 +408,7 @@ class Client:
         query_json = json.dumps(query_dict)
 
         async with self._session.post(self._url_data, data=query_json) as response:
-            await self._check_and_handle_errors(response)
+            await check_response(response)
 
             # expected reponse:
             # {
@@ -432,18 +430,16 @@ class Client:
                         f"{identifier}: Timestamps already exist"
                     )
 
-                if "error" not in results:
-                    continue
+                if "error" in results:
+                    error_message = results["error"]
+                    error_prefix = f"Error uploading to virtual channel {identifier}"
 
-                error_message = results["error"]
-                error_prefix = f"Error uploading to virtual channel {identifier}"
+                    if "ChannelGroup not found" in error_message:
+                        raise ValueError(f"{error_prefix}: {identifier} does not exist")
+                    if "INSERT has more expressions than target columns" in error_message:
+                        raise ValueError(f"{error_prefix}: {error_message}")
 
-                if "ChannelGroup not found" in error_message:
-                    raise ValueError(f"{error_prefix}: {identifier} does not exist")
-                if error_message == "INSERT has more expressions than target columns":
-                    raise ValueError(f"{error_prefix}: {error_message}")
-
-                logger.warning(f"{error_prefix}, ignore data: {error_message}")
+                    logger.warning(f"{error_prefix}, ignore data: {error_message}")
 
     @connection_exception_handling
     async def upload_data(
@@ -484,7 +480,7 @@ class Client:
         logger.warning("Delete all data and setup information")
         url = urljoin(self._url_api, "/dev/recreate")
         async with self._session.get(url) as response:
-            await self._check_and_handle_errors(response)
+            await check_response(response)
 
     async def close(self):
         """Close session."""
