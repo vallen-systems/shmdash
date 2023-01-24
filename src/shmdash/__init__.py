@@ -168,8 +168,6 @@ def connection_exception_handling(func):
     async def async_wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
-        except asyncio.TimeoutError:
-            raise ConnectionError("Timeout error") from None
         except aiohttp.ServerConnectionError as e:
             raise ConnectionError(str(e) if str(e) else "Server connection error") from None
         except aiohttp.ClientConnectionError as e:
