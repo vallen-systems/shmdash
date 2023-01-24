@@ -4,7 +4,7 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 from urllib.parse import urljoin
 
 import aiohttp
@@ -124,7 +124,8 @@ class UploadData:
     """Upload data."""
 
     timestamp: datetime  #: Absolute datetime (unique!)
-    data: Sequence[float]  #: List of values in order of the virtual channel attributes
+    #: List of values in order of the virtual channel attributes
+    data: Sequence[Union[int, float, str]]
 
 
 class RedirectionError(Exception):
@@ -190,6 +191,7 @@ async def check_response(response: aiohttp.ClientResponse):
     except ValueError:
         response_dict = {}
 
+    # pylint: disable=consider-using-f-string
     error_message = "HTTP {code} error for {method} request {url}: {message}".format(
         code=status,
         method=response.method,
@@ -307,7 +309,10 @@ class Client:
     async def get_attribute(self, attribute_id: str) -> Optional[Attribute]:
         """Get attribute by identifier."""
         return next(
-            filter(lambda a: a.identifier == attribute_id, await self.get_attributes()),
+            filter(
+                lambda a: a.identifier == attribute_id,  # type: ignore
+                await self.get_attributes(),
+            ),
             None,
         )
 
@@ -321,7 +326,10 @@ class Client:
     async def get_virtual_channel(self, virtual_channel_id: str) -> Optional[VirtualChannel]:
         """Get virtual channel by identifier."""
         return next(
-            filter(lambda a: a.identifier == virtual_channel_id, await self.get_virtual_channels()),
+            filter(
+                lambda a: a.identifier == virtual_channel_id,  # type: ignore
+                await self.get_virtual_channels(),
+            ),
             None,
         )
 
