@@ -2,6 +2,9 @@
 
 Python client library for Vallen Systeme Dashboard (SHM Dash).
 
+Please have a look at the [basic example](examples/basic.py) for usage.
+Further descriptions of the client functions can be found in the docstrings.
+
 ## Installation
 
 Install the latest version from Git:
@@ -19,9 +22,6 @@ cd pySHMdash
 
 # Install package and development tools
 pip install -e .[dev]
-
-# Install the git hook scripts
-pre-commit install
 
 # Run checks & tests with tox
 tox
