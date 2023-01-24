@@ -217,6 +217,13 @@ async def check_response(response: aiohttp.ClientResponse):
     raise RuntimeError(f"Uncaught error: {error_message}")
 
 
+def _merge_dicts(*dcts):
+    result = {}
+    for dct in dcts:
+        result.update(dct)
+    return result
+
+
 class Client:
     """SHM Dash client."""
 
@@ -267,27 +274,30 @@ class Client:
     async def setup(
         self, attributes: Sequence[Attribute], virtual_channels: Sequence[VirtualChannel]
     ):
-        """Upload setup."""
+        """
+        Upload setup.
 
-        def merge_dicts(*dcts):
-            result = {}
-            for dct in dcts:
-                result.update(dct)
-            return result
-
-        logger.info("Upload setup to SHM Dash server...")
-        query_dict = dict(
-            # fmt: off
-            attributes=merge_dicts(
-                *(attribute.to_dict() for attribute in attributes)
-            ),
-            virtual_channels=merge_dicts(
-                *(virtual_channel.to_dict() for virtual_channel in virtual_channels)
-            ),
-        )
-        query_json = json.dumps(query_dict)
-        async with self._session.post(self._url_setup, data=query_json) as response:
-            await check_response(response)
+        If a setup already exists, attributes and virtual channels are added to the existing setup.
+        """
+        if await self.has_setup():
+            for attribute in attributes:
+                await self.add_attribute(attribute)
+            for virtual_channel in virtual_channels:
+                await self.add_virtual_channel(virtual_channel)
+        else:
+            logger.info("Upload setup")
+            query_dict = dict(
+                # fmt: off
+                attributes=_merge_dicts(
+                    *(attribute.to_dict() for attribute in attributes)
+                ),
+                virtual_channels=_merge_dicts(
+                    *(virtual_channel.to_dict() for virtual_channel in virtual_channels)
+                ),
+            )
+            query_json = json.dumps(query_dict)
+            async with self._session.post(self._url_setup, data=query_json) as response:
+                await check_response(response)
 
     @connection_exception_handling
     async def get_attributes(self) -> List[Attribute]:
