@@ -34,7 +34,7 @@ class Attribute:
     desc: str  #: Channel description
     unit: Optional[str]  #: Measurement unit
     type_: str  #: Type: dateTime, int16, unit16, int32, uint32, int64, float32, float64 or string
-    format_: str  #: Format string, e.g. %s for strings, %d for integers, %.2f for floats
+    format_: Optional[str] = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
     soft_limits: Tuple[Optional[float], Optional[float]] = (None, None)  #: Min/max values
     diagram_scale: str = "lin"  #: Diagram scale: lin or log
 
