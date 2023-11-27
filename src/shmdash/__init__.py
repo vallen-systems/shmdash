@@ -2,6 +2,7 @@ import asyncio
 import functools
 import json
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
@@ -10,6 +11,14 @@ from urllib.parse import urljoin
 import aiohttp
 
 logger = logging.getLogger(__name__)
+
+
+def to_identifier(identifier: Any) -> str:
+    """Convert to identifier (alphanumeric and "_", max. 32 chars)."""
+    result = str(identifier)
+    result = re.sub(r"[^a-zA-Z0-9_]", "", result)  # remove non-allowed chars
+    result = result[:32]  # crop to max. 32 chars
+    return result
 
 
 @dataclass
@@ -30,7 +39,7 @@ class Attribute:
     }
     """
 
-    identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 char)
+    identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars)
     desc: str  #: Channel description
     unit: Optional[str]  #: Measurement unit
     type_: str  #: Type: dateTime, int16, unit16, int32, uint32, int64, float32, float64 or string
@@ -80,7 +89,7 @@ class VirtualChannel:
     }
     """
 
-    identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 char) VAE requires int
+    identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars), VAE requires int
     name: str  #: Channel group name
     desc: Optional[str]  #: Channel group description
     #: List of assigned attribute / channel identifiers.
