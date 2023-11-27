@@ -171,7 +171,7 @@ class PayloadTooLargeError(ServerError):
     """
 
 
-def connection_exception_handling(func):
+def _connection_exception_handling(func):
     assert asyncio.iscoroutinefunction(func)
 
     @functools.wraps(func)
@@ -186,7 +186,7 @@ def connection_exception_handling(func):
     return async_wrapper
 
 
-async def check_response(response: aiohttp.ClientResponse):
+async def _check_response(response: aiohttp.ClientResponse):
     """Check HTTP client response and handle errors."""
     status = response.status  # e.g. 401
     status_class = status // 100 * 100  # e.g. 400
@@ -268,19 +268,19 @@ class Client:
     async def __aexit__(self, exc_type, exc, traceback):
         await self.close()
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def get_setup(self) -> Dict:
         async with self._session.get(self._url_setup) as response:
-            await check_response(response)
+            await _check_response(response)
             return await response.json()
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def has_setup(self) -> bool:
         """Check if an setup already exists."""
         setup = await self.get_setup()
         return bool(setup["attributes"]) and bool(setup["virtual_channels"])
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def setup(
         self, attributes: Sequence[Attribute], virtual_channels: Sequence[VirtualChannel]
     ):
@@ -307,15 +307,15 @@ class Client:
             )
             query_json = json.dumps(query_dict)
             async with self._session.post(self._url_setup, data=query_json) as response:
-                await check_response(response)
+                await _check_response(response)
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def get_attributes(self) -> List[Attribute]:
         """Get list of existing attributes."""
         setup = await self.get_setup()
         return list(Attribute.from_dict(setup["attributes"]))
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def get_attribute(self, attribute_id: str) -> Optional[Attribute]:
         """Get attribute by identifier."""
         return next(
@@ -326,13 +326,13 @@ class Client:
             None,
         )
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def get_virtual_channels(self) -> List[VirtualChannel]:
         """Get list of existing virtual channels."""
         setup = await self.get_setup()
         return list(VirtualChannel.from_dict(setup["virtual_channels"]))
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def get_virtual_channel(self, virtual_channel_id: str) -> Optional[VirtualChannel]:
         """Get virtual channel by identifier."""
         return next(
@@ -343,7 +343,7 @@ class Client:
             None,
         )
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def add_attribute(self, attribute: Attribute):
         """
         Add attribute / channel.
@@ -368,9 +368,9 @@ class Client:
         )
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await check_response(response)
+            await _check_response(response)
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def add_virtual_channel(self, virtual_channel: VirtualChannel):
         """
         Add virtual channel / channel group.
@@ -395,9 +395,9 @@ class Client:
         )
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await check_response(response)
+            await _check_response(response)
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def add_virtual_channel_attributes(
         self, virtual_channel_id: str, attribute_ids: Sequence[str]
     ):
@@ -420,9 +420,9 @@ class Client:
         )
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await check_response(response)
+            await _check_response(response)
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def _upload_data_chunk(self, virtual_channel_id: str, data: Sequence[UploadData]):
         def convert_datetime(timestamp):
             return timestamp.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -434,7 +434,7 @@ class Client:
         query_json = json.dumps(query_dict)
 
         async with self._session.post(self._url_data, data=query_json) as response:
-            await check_response(response)
+            await _check_response(response)
 
             # expected reponse:
             # {
@@ -467,7 +467,7 @@ class Client:
 
                     logger.warning(f"{error_prefix}, ignore data: {error_message}")
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def upload_data(
         self, virtual_channel_id: str, data: Sequence[UploadData], chunksize: int = 128
     ):
@@ -496,7 +496,7 @@ class Client:
                     raise
                 await self.upload_data(virtual_channel_id, data_chunk, chunksize=new_chunksize)
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def delete_data(self):
         """
         Delete all time-series data.
@@ -506,9 +506,9 @@ class Client:
         logger.warning("Delete all data")
         url = urljoin(self._url_api, "/dev/timeseriesdata")
         async with self._session.delete(url) as response:
-            await check_response(response)
+            await _check_response(response)
 
-    @connection_exception_handling
+    @_connection_exception_handling
     async def recreate(self):
         """
         Delete all time-series data and setup information.
@@ -518,7 +518,7 @@ class Client:
         logger.warning("Delete all data and setup information")
         url = urljoin(self._url_api, "/dev/recreate")
         async with self._session.get(url) as response:
-            await check_response(response)
+            await _check_response(response)
 
     async def close(self):
         """Close session."""
