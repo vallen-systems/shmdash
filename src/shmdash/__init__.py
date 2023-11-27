@@ -186,13 +186,21 @@ def _connection_exception_handling(func):
     return async_wrapper
 
 
-async def _check_response(response: aiohttp.ClientResponse):
+async def _check_response(response: aiohttp.ClientResponse, request_body: Optional[str] = None):
     """Check HTTP client response and handle errors."""
     status = response.status  # e.g. 401
     status_class = status // 100 * 100  # e.g. 400
 
     if status_class == 200:
         return
+
+    logger.error(
+        "HTTP %s error for %s request %s: %s",
+        status,
+        response.method,
+        response.url,
+        request_body or "empty",
+    )
 
     response_text = await response.text()
     try:
@@ -307,7 +315,7 @@ class Client:
             )
             query_json = json.dumps(query_dict)
             async with self._session.post(self._url_setup, data=query_json) as response:
-                await _check_response(response)
+                await _check_response(response, request_body=query_json)
 
     @_connection_exception_handling
     async def get_attributes(self) -> List[Attribute]:
@@ -368,7 +376,7 @@ class Client:
         )
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await _check_response(response)
+            await _check_response(response, request_body=query_json)
 
     @_connection_exception_handling
     async def add_virtual_channel(self, virtual_channel: VirtualChannel):
@@ -395,7 +403,7 @@ class Client:
         )
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await _check_response(response)
+            await _check_response(response, request_body=query_json)
 
     @_connection_exception_handling
     async def add_virtual_channel_attributes(
@@ -420,7 +428,7 @@ class Client:
         )
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await _check_response(response)
+            await _check_response(response, request_body=query_json)
 
     @_connection_exception_handling
     async def _upload_data_chunk(self, virtual_channel_id: str, data: Sequence[UploadData]):
@@ -434,7 +442,7 @@ class Client:
         query_json = json.dumps(query_dict)
 
         async with self._session.post(self._url_data, data=query_json) as response:
-            await _check_response(response)
+            await _check_response(response, request_body=query_json)
 
             # expected reponse:
             # {
