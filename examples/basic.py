@@ -1,9 +1,9 @@
 import asyncio
-import logging
+import contextlib
 import random
 from datetime import datetime
 
-from shmdash import Attribute, Client, UploadData, VirtualChannel
+from shmdash import Attribute, AttributeType, Client, UploadData, VirtualChannel
 
 URL = "https://dev.shmdash.de"
 API_KEY = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
@@ -116,8 +116,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    try:
+    with contextlib.suppress(KeyboardInterrupt):
         asyncio.run(main())
-    except KeyboardInterrupt:
-        ...

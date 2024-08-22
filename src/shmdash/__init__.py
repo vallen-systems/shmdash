@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+from http import HTTPStatus
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 from urllib.parse import urljoin
 
@@ -18,8 +19,7 @@ def to_identifier(identifier: Any) -> str:
     """Convert to identifier (alphanumeric and "_", max. 32 chars)."""
     result = str(identifier)
     result = re.sub(r"[^a-zA-Z0-9_]", "", result)  # remove non-allowed chars
-    result = result[:32]  # crop to max. 32 chars
-    return result
+    return result[:32]  # crop to max. 32 chars
 
 
 class AttributeType(str, Enum):
@@ -214,7 +214,7 @@ async def _check_response(response: aiohttp.ClientResponse, request_body: Option
     status = response.status  # e.g. 401
     status_class = status // 100 * 100  # e.g. 400
 
-    if status_class == 200:
+    if status_class == HTTPStatus.OK:
         return
 
     logger.error(
@@ -239,17 +239,17 @@ async def _check_response(response: aiohttp.ClientResponse, request_body: Option
         message=response_dict.get("message", response_text),  # JSON dict with message expected
     )
 
-    if status_class == 300:
+    if status_class == HTTPStatus.MULTIPLE_CHOICES:
         raise RedirectionError(error_message)
 
-    if status_class == 400:
-        if status == 400:
+    if status_class == HTTPStatus.BAD_REQUEST:
+        if status == HTTPStatus.BAD_REQUEST:
             raise BadRequestError(error_message)
-        if status == 401:
+        if status == HTTPStatus.UNAUTHORIZED:
             raise UnauthorizedError(error_message)
         raise ClientError(error_message)
 
-    if status_class == 500:
+    if status_class == HTTPStatus.INTERNAL_SERVER_ERROR:
         if "PayloadTooLargeError" in response_dict.get("message", ""):
             raise PayloadTooLargeError(error_message)
         raise ServerError(error_message)
@@ -276,7 +276,7 @@ class Client:
             api_key: API key
             verify_ssl: Check SSL certifications
         """
-        logger.info(f"Initialize SHM Dash client: {url}")
+        logger.info("Initialize SHM Dash client: %s", url)
 
         self._url_api = urljoin(url, "/upload/vjson/v1/")
         self._url_setup = urljoin(self._url_api, "setup")
@@ -327,15 +327,12 @@ class Client:
                 await self.add_virtual_channel(virtual_channel)
         else:
             logger.info("Upload setup")
-            query_dict = dict(
-                # fmt: off
-                attributes=_merge_dicts(
-                    *(attribute.to_dict() for attribute in attributes)
-                ),
-                virtual_channels=_merge_dicts(
+            query_dict = {
+                "attributes": _merge_dicts(*(attribute.to_dict() for attribute in attributes)),
+                "virtual_channels": _merge_dicts(
                     *(virtual_channel.to_dict() for virtual_channel in virtual_channels)
                 ),
-            )
+            }
             query_json = json.dumps(query_dict)
             async with self._session.post(self._url_setup, data=query_json) as response:
                 await _check_response(response, request_body=query_json)
@@ -384,19 +381,19 @@ class Client:
         """
         existing = {a.identifier: a for a in await self.get_attributes()}
         if attribute.identifier in existing:
-            logger.info(f"Attribute {attribute.identifier} already exists")
+            logger.info("Attribute %s already exists", attribute.identifier)
             return
 
-        logger.info(f"Add attribute {attribute.identifier}")
-        query_dict = dict(
-            commands=[
-                dict(
-                    cmdName="addAttribute",
-                    attributeId=str(attribute.identifier),
+        logger.info("Add attribute %s", attribute.identifier)
+        query_dict = {
+            "commands": [
+                {
+                    "cmdName": "addAttribute",
+                    "attributeId": str(attribute.identifier),
                     **attribute.to_dict()[attribute.identifier],
-                )
+                }
             ]
-        )
+        }
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
             await _check_response(response, request_body=query_json)
@@ -411,19 +408,19 @@ class Client:
         """
         existing = {vc.identifier: vc for vc in await self.get_virtual_channels()}
         if str(virtual_channel.identifier) in existing:
-            logger.info(f"Virtual channel {virtual_channel.identifier} already exists")
+            logger.info("Virtual channel %s already exists", virtual_channel.identifier)
             return
 
-        logger.info(f"Add virtual channel {virtual_channel.identifier}")
-        query_dict = dict(
-            commands=[
-                dict(
-                    cmdName="addVirtualChannel",
-                    virtualChannelId=str(virtual_channel.identifier),
+        logger.info("Add virtual channel %s", virtual_channel.identifier)
+        query_dict = {
+            "commands": [
+                {
+                    "cmdName": "addVirtualChannel",
+                    "virtualChannelId": str(virtual_channel.identifier),
                     **virtual_channel.to_dict()[virtual_channel.identifier],
-                )
+                }
             ]
-        )
+        }
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
             await _check_response(response, request_body=query_json)
@@ -439,16 +436,16 @@ class Client:
             virtual_channel_id: Virtual channel identifier
             attribute_ids: Attribute identifiers
         """
-        logger.info(f"Add attributes {attribute_ids} to virtual channel {virtual_channel_id}")
-        query_dict = dict(
-            commands=[
-                dict(
-                    cmdName="addVirtualChannelAttributes",
-                    virtualChannelId=str(virtual_channel_id),
-                    attributes=attribute_ids,
-                )
+        logger.info("Add attributes %s to virtual channel %s", attribute_ids, virtual_channel_id)
+        query_dict = {
+            "commands": [
+                {
+                    "cmdName": "addVirtualChannelAttributes",
+                    "virtualChannelId": str(virtual_channel_id),
+                    "attributes": attribute_ids,
+                }
             ]
-        )
+        }
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
             await _check_response(response, request_body=query_json)
@@ -458,10 +455,10 @@ class Client:
         def convert_datetime(timestamp):
             return timestamp.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
-        query_dict = dict(
-            conflict="IGNORE",
-            data=[[virtual_channel_id, convert_datetime(d.timestamp), *d.data] for d in data],
-        )
+        query_dict = {
+            "conflict": "IGNORE",
+            "data": [[virtual_channel_id, convert_datetime(d.timestamp), *d.data] for d in data],
+        }
         query_json = json.dumps(query_dict)
 
         async with self._session.post(self._url_data, data=query_json) as response:
@@ -483,8 +480,10 @@ class Client:
                 unsuccessful_uploads = len(data) - results.get("success", len(data))
                 if unsuccessful_uploads > 0:
                     logger.warning(
-                        f"Ignored {unsuccessful_uploads}/{len(data)} uploads to virtual channel "
-                        f"{identifier}: Timestamps already exist"
+                        "Ignored %d/%d uploads to virtual channel %s: Timestamps already exist",
+                        unsuccessful_uploads,
+                        len(data),
+                        identifier,
                     )
 
                 if "error" in results:
@@ -496,7 +495,7 @@ class Client:
                     if "INSERT has more expressions than target columns" in error_message:
                         raise ValueError(f"{error_prefix}: {error_message}")
 
-                    logger.warning(f"{error_prefix}, ignore data: {error_message}")
+                    logger.warning("%s, ignore data: %s", error_prefix, error_message)
 
     @_connection_exception_handling
     async def upload_data(
@@ -516,13 +515,13 @@ class Client:
             for i in range(0, len(lst), n):
                 yield lst[i : i + n]
 
-        logger.debug(f"Upload {len(data)} data sets to virtual channel {virtual_channel_id}")
+        logger.debug("Upload %d data sets to virtual channel %s", len(data), virtual_channel_id)
         for data_chunk in chunks(data, chunksize):
             try:
                 await self._upload_data_chunk(virtual_channel_id, data_chunk)
-            except PayloadTooLargeError as e:
+            except PayloadTooLargeError as e:  # noqa:PERF203
                 new_chunksize = int(chunksize / 2)
-                logger.warning(f"{e}. Retry with smaller chunksize {new_chunksize}")
+                logger.warning("%s. Retry with smaller chunksize %d", e, new_chunksize)
                 if new_chunksize <= 1:
                     raise
                 await self.upload_data(virtual_channel_id, data_chunk, chunksize=new_chunksize)

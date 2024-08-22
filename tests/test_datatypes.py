@@ -27,7 +27,7 @@ def test_attribute():
 
     assert attribute.identifier == "AbsDateTime"
     assert attribute.desc == "Absolutetime in ISO8601, UTC Zone (max. μs)"
-    assert attribute.unit == None
+    assert attribute.unit is None
     assert attribute.type_ == "dateTime"
     assert attribute.format_ == "YYYY-MM-DDThh:mm:ss[.ssssss]Z"
     assert attribute.soft_limits == (0, None)
