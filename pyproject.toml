@@ -35,10 +35,8 @@ tests = [
 
 ]
 tools = [
-    "black",
-    "isort",
-    "pylint>=2.5", # pyproject.toml support
     "mypy>=0.9", # pyproject.toml support
+    "ruff>=0.5",
     "tox>=3.4", # pyproject.toml support
 
 ]
@@ -48,23 +46,26 @@ dev = ["shmdash[tests,tools]"] # recursive dependency since pip 21.2
 Source = "https://github.com/vallen-systems/pySHMdash"
 Issues = "https://github.com/vallen-systems/pySHMdash/issues"
 
-[tool.black]
+[tool.ruff]
 line-length = 100
 
-[tool.isort]
-profile = "black"
-
-[tool.pylint.format]
-max-line-length = 100
-
-[tool.pylint.message_control]
-good-names = ["logger", "e", "i", "j", "k", "n", "m", "e"]
-disable = [
-    "import-error",
-    "missing-module-docstring",
-    "missing-class-docstring",
-    "missing-function-docstring",
-    "logging-fstring-interpolation",
+[tool.ruff.lint]
+select = [
+    "F", # pyflakes
+    "E", "W", # pycodestyle
+    "I", # isort
+    "N", # pep8 naming
+    "B", # flake8 bugbear
+    "A", # flake8 builtins
+    "C4", # flake8 comprehensions
+    "G", # flake8 logging format
+    "PIE", # flake8 pie
+    "RET", # flake8 return
+    "SIM", # flake8 simplify
+    "PT", # flake8 pytest style
+    "PL", # pylint
+    "PERF", # perflint
+    "RUF", # ruff specific rules
 ]
 
 [tool.mypy]
@@ -87,26 +88,13 @@ source = ["src", ".tox/*/site-packages"]
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = black, isort, pylint, mypy, py37, py38, p39, py310, py311, coverage-report
+envlist = ruff, mypy, py37, py38, p39, py310, py311, coverage-report
 
-[testenv:black]
+[testenv:ruff]
 skip_install = true
-deps = black
+deps = ruff
 commands =
-    black --diff .
-    black --check .
-
-[testenv:isort]
-skip_install = true
-deps = isort
-commands =
-    isort --diff .
-    isort --check-only .
-
-[testenv:pylint]
-skip_install = true
-deps = pylint
-commands = pylint ./src/
+    ruff check .
 
 [testenv:mypy]
 skip_install = true
