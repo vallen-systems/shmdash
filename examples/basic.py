@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import logging
 import random
 from datetime import datetime
 
@@ -82,6 +83,8 @@ VIRTUAL_CHANNELS = [
 
 
 async def main():
+    logging.basicConfig(level=logging.DEBUG)
+
     async with Client(URL, API_KEY) as client:
         # delete all data
         # await client.delete_data()
