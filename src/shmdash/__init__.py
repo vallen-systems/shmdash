@@ -5,6 +5,7 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 from urllib.parse import urljoin
 
@@ -19,6 +20,29 @@ def to_identifier(identifier: Any) -> str:
     result = re.sub(r"[^a-zA-Z0-9_]", "", result)  # remove non-allowed chars
     result = result[:32]  # crop to max. 32 chars
     return result
+
+
+class AttributeType(str, Enum):
+    DATETIME = "dateTime"
+    INT16 = "int16"
+    UINT16 = "uint16"
+    INT32 = "int32"
+    UINT32 = "uint32"
+    INT64 = "int64"
+    FLOAT32 = "float32"
+    FLOAT64 = "float64"
+    STRING = "string"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class DiagramScale(str, Enum):
+    LIN = "lin"
+    LOG = "log"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 @dataclass
@@ -42,10 +66,10 @@ class Attribute:
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars)
     desc: str  #: Channel description
     unit: Optional[str]  #: Measurement unit
-    type_: str  #: Type: dateTime, int16, unit16, int32, uint32, int64, float32, float64 or string
+    type_: AttributeType  #: Type
     format_: Optional[str] = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
     soft_limits: Tuple[Optional[float], Optional[float]] = (None, None)  #: Min/max values
-    diagram_scale: str = "lin"  #: Diagram scale: lin or log
+    diagram_scale: DiagramScale = DiagramScale.LIN
 
     @classmethod
     def from_dict(cls, attributes_dict: Dict[str, Dict[str, Any]]) -> Iterator["Attribute"]:
@@ -55,23 +79,23 @@ class Attribute:
                 identifier=identifier,
                 desc=dct["descr"],
                 unit=dct.get("unit"),
-                type_=dct["type"],
+                type_=AttributeType(dct["type"]),
                 format_=dct["format"],
                 soft_limits=dct.get("softLimits", (None, None)),
-                diagram_scale=dct.get("diagramScale", "lin"),
+                diagram_scale=DiagramScale(dct.get("diagramScale", "lin")),
             )
 
     def to_dict(self) -> Dict[str, Dict[str, Any]]:
         """Convert into dict for JSON representation."""
         return {
-            self.identifier: dict(
-                descr=self.desc,
-                unit=self.unit,
-                type=self.type_,
-                format=self.format_,
-                softLimits=self.soft_limits,
-                diagramScale=self.diagram_scale,
-            )
+            self.identifier: {
+                "descr": self.desc,
+                "unit": self.unit,
+                "type": str(self.type_),
+                "format": self.format_,
+                "softLimits": self.soft_limits,
+                "diagramScale": str(self.diagram_scale),
+            }
         }
 
 
@@ -118,13 +142,12 @@ class VirtualChannel:
     def to_dict(self) -> Dict[str, Dict[str, Any]]:
         """Convert into dict for JSON representation."""
         return {
-            # fmt: off
-            self.identifier: dict(
-                name=self.name,
-                descr=self.desc,
-                attributes=self.attributes,
-                prop=self.properties,
-            )
+            self.identifier: {
+                "name": self.name,
+                "descr": self.desc,
+                "attributes": self.attributes,
+                "prop": self.properties,
+            }
         }
 
 

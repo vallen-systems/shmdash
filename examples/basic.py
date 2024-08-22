@@ -14,7 +14,7 @@ ATTRIBUTES = [
         desc="Absolute time UTC",
         unit=None,
         format_="YYYY-MM-DDThh:mm:ss.ssssssZ",
-        type_="dateTime",
+        type_=AttributeType.DATETIME,
         soft_limits=[None, None],
     ),
     Attribute(
@@ -22,21 +22,21 @@ ATTRIBUTES = [
         desc="Temperature",
         unit="°C",
         format_="%.2f",
-        type_="float32",
+        type_=AttributeType.FLOAT32,
     ),
     Attribute(
         identifier="Pressure",
         desc="Atmospheric pressure",
         unit="hPa",
         format_="%.0f",
-        type_="float32",
+        type_=AttributeType.FLOAT32,
     ),
     Attribute(
         identifier="Humidity",
         desc="Humidity",
         unit="%",
         format_="%.0f",
-        type_="float32",
+        type_=AttributeType.FLOAT32,
         soft_limits=[0, None],
     ),
     Attribute(
@@ -44,14 +44,14 @@ ATTRIBUTES = [
         desc="Wind speed",
         unit="km/h",
         format_="%.2f",
-        type_="float32",
+        type_=AttributeType.FLOAT32,
     ),
     Attribute(
         identifier="WindDegree",
         desc="Wind degree",
         unit="°",
         format_="%.0f",
-        type_="uint16",
+        type_=AttributeType.UINT16,
         soft_limits=[0, 360],
     ),
     Attribute(
@@ -59,14 +59,14 @@ ATTRIBUTES = [
         desc="Rain volume in last hour",
         unit="mm",
         format_="%.2f",
-        type_="float32",
+        type_=AttributeType.FLOAT32,
     ),
     Attribute(
         identifier="WeatherDescription",
         desc="Weather description",
         unit=None,
         format_="%s",
-        type_="string",
+        type_=AttributeType.STRING,
     ),
 ]
 
