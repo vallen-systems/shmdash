@@ -1,4 +1,4 @@
-from shmdash import Attribute, VirtualChannel, to_identifier
+from shmdash import Attribute, AttributeType, DiagramScale, VirtualChannel, to_identifier
 
 
 def test_to_identifier():
@@ -28,10 +28,10 @@ def test_attribute():
     assert attribute.identifier == "AbsDateTime"
     assert attribute.desc == "Absolutetime in ISO8601, UTC Zone (max. μs)"
     assert attribute.unit is None
-    assert attribute.type == "dateTime"
+    assert attribute.type == AttributeType.DATETIME
     assert attribute.format == "YYYY-MM-DDThh:mm:ss[.ssssss]Z"
     assert attribute.soft_limits == (0, None)
-    assert attribute.diagram_scale == "lin"
+    assert attribute.diagram_scale == DiagramScale.LIN
 
     attribute_dict_parsed = attribute.to_dict()
     assert attribute_dict_parsed == attribute_dict
