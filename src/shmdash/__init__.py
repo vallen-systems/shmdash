@@ -120,7 +120,7 @@ class VirtualChannel:
     #: Following channels have specific meaning: AbsDateTime, DSET, X, Y
     #: Following statistics can be applied:
     #: min(id), max(id), avg(id), sum(id), stdDev(id), nbVals(id), var(id), deltaT()
-    attributes: List[Attribute]
+    attributes: List[str]
     #: Properties used for interpretation of the data:
     #: - hardcoded on the server side: STREAM, LOC (require X, Y), STAT (statistics)
     #: - used in VAE: HIT, PAR, ...

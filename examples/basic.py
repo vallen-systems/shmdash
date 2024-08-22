@@ -16,7 +16,7 @@ ATTRIBUTES = [
         unit=None,
         format="YYYY-MM-DDThh:mm:ss.ssssssZ",
         type=AttributeType.DATETIME,
-        soft_limits=[None, None],
+        soft_limits=(None, None),
     ),
     Attribute(
         identifier="Temperature",
@@ -38,7 +38,7 @@ ATTRIBUTES = [
         unit="%",
         format="%.0f",
         type=AttributeType.FLOAT32,
-        soft_limits=[0, None],
+        soft_limits=(0, None),
     ),
     Attribute(
         identifier="WindSpeed",
@@ -53,7 +53,7 @@ ATTRIBUTES = [
         unit="°",
         format="%.0f",
         type=AttributeType.UINT16,
-        soft_limits=[0, 360],
+        soft_limits=(0, 360),
     ),
     Attribute(
         identifier="Rain1h",
@@ -73,7 +73,7 @@ ATTRIBUTES = [
 
 VIRTUAL_CHANNELS = [
     VirtualChannel(
-        identifier=100,
+        identifier="100",
         name="Weather",
         desc="Just random test data",
         attributes=[attr.identifier for attr in ATTRIBUTES],
