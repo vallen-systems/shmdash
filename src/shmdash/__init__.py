@@ -66,8 +66,8 @@ class Attribute:
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars)
     desc: str  #: Channel description
     unit: Optional[str]  #: Measurement unit
-    type_: AttributeType  #: Type
-    format_: Optional[str] = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
+    type: AttributeType  #: Type
+    format: Optional[str] = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
     soft_limits: Tuple[Optional[float], Optional[float]] = (None, None)  #: Min/max values
     diagram_scale: DiagramScale = DiagramScale.LIN
 
@@ -79,8 +79,8 @@ class Attribute:
                 identifier=identifier,
                 desc=dct["descr"],
                 unit=dct.get("unit"),
-                type_=AttributeType(dct["type"]),
-                format_=dct["format"],
+                type=AttributeType(dct["type"]),
+                format=dct["format"],
                 soft_limits=dct.get("softLimits", (None, None)),
                 diagram_scale=DiagramScale(dct.get("diagramScale", "lin")),
             )
@@ -91,8 +91,8 @@ class Attribute:
             self.identifier: {
                 "descr": self.desc,
                 "unit": self.unit,
-                "type": str(self.type_),
-                "format": self.format_,
+                "type": str(self.type),
+                "format": self.format,
                 "softLimits": self.soft_limits,
                 "diagramScale": str(self.diagram_scale),
             }
