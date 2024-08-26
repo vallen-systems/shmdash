@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "shmdash"
@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 keywords = ["vallen", "shmdash", "dashboard", "upload", "client"]
 dependencies = ["aiohttp~=3.7"]
@@ -32,19 +33,25 @@ dependencies = ["aiohttp~=3.7"]
 tests = [
     "pytest>=6", # pyproject.toml support
     "coverage[toml]>=5", # pyproject.toml support
-
 ]
 tools = [
+    "hatch",
     "mypy>=0.9", # pyproject.toml support
     "ruff>=0.5",
-    "tox>=3.4", # pyproject.toml support
-
 ]
 dev = ["shmdash[tests,tools]"] # recursive dependency since pip 21.2
 
 [project.urls]
 Source = "https://github.com/vallen-systems/pySHMdash"
 Issues = "https://github.com/vallen-systems/pySHMdash/issues"
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+[tool.hatch.envs.typing]
+features = ["tools"]
+[tool.hatch.envs.typing.scripts]
+check = "mypy ."
 
 [tool.ruff]
 line-length = 100
@@ -84,33 +91,3 @@ source = ["shmdash"]
 
 [tool.coverage.paths]
 source = ["src", ".tox/*/site-packages"]
-
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = ruff, mypy, py37, py38, p39, py310, py311, coverage-report
-
-[testenv:ruff]
-skip_install = true
-deps = ruff
-commands =
-    ruff check .
-
-[testenv:mypy]
-skip_install = true
-deps = mypy>=0.9
-commands =
-    mypy ./src/
-
-[testenv]
-extras = tests
-commands = 
-    coverage run --parallel -m pytest
-
-[testenv:coverage-report]
-skip_install = true
-deps = coverage[toml]>=5
-commands =
-    - coverage combine
-    coverage report
-"""
