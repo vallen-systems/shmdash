@@ -19,7 +19,7 @@ def test_attribute():
             "format": "YYYY-MM-DDThh:mm:ss[.ssssss]Z",
             "softLimits": (0, None),
             "diagramScale": "lin",
-        }
+        },
     }
 
     attributes = list(Attribute.from_dict(attribute_dict))
@@ -44,7 +44,7 @@ def test_virtual_channel():
             "descr": "Description",
             "attributes": ["AbsDateTime", "DSET", "A"],
             "prop": ["STREAM", "HIT"],
-        }
+        },
     }
 
     virtual_channels = list(VirtualChannel.from_dict(virtual_channel_dict))

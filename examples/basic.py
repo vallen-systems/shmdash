@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import logging
 import random
-from datetime import datetime
+from datetime import UTC, datetime
 
 from shmdash import Attribute, AttributeType, Client, UploadData, VirtualChannel
 
@@ -102,7 +102,7 @@ async def main():
                 virtual_channel_id="100",
                 data=[
                     UploadData(
-                        timestamp=datetime.now(),
+                        timestamp=datetime.now(tz=UTC),
                         data=[
                             random.gauss(20, 1),  # temperature
                             random.gauss(1013.25, 1),  # pressure

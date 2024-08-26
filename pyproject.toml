@@ -58,21 +58,24 @@ line-length = 100
 
 [tool.ruff.lint]
 select = [
-    "F", # pyflakes
-    "E", "W", # pycodestyle
-    "I", # isort
-    "N", # pep8 naming
-    "B", # flake8 bugbear
-    "A", # flake8 builtins
-    "C4", # flake8 comprehensions
-    "G", # flake8 logging format
-    "PIE", # flake8 pie
-    "RET", # flake8 return
-    "SIM", # flake8 simplify
-    "PT", # flake8 pytest style
-    "PL", # pylint
-    "PERF", # perflint
-    "RUF", # ruff specific rules
+    "ALL",
+]
+ignore = [
+    "ANN",    # flake8-annotations
+    "COM812", # Trailing comma missing, conflicts with ruff format
+    "D",      # pydocstyle
+    "ERA001", # Found commented-out code
+    "EM102",  # Exception must not use an f-string literal, assign to variable first
+    "ISC001", # Implicitly concatenated string literals on one line, conflicts with ruff format
+    "TRY003", # Avoid specifying long messages outside the exception class
+]
+
+[tool.ruff.lint.per-file-ignores]
+"!src/**/*.py" = [
+    "S101",   # Use of `assert` detected
+    "S311",   # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "T20",    # flake8-print
+    "INP001", # File is part of an implicit namespace package. Add an __init__.py.
 ]
 
 [tool.mypy]

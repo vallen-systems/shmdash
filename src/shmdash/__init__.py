@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import functools
 import json
@@ -7,7 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from http import HTTPStatus
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Iterator, Sequence
 from urllib.parse import urljoin
 
 import aiohttp
@@ -65,14 +67,14 @@ class Attribute:
 
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars)
     desc: str  #: Channel description
-    unit: Optional[str]  #: Measurement unit
+    unit: str | None  #: Measurement unit
     type: AttributeType  #: Type
-    format: Optional[str] = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
-    soft_limits: Tuple[Optional[float], Optional[float]] = (None, None)  #: Min/max values
+    format: str | None = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
+    soft_limits: tuple[float | None, float | None] = (None, None)  #: Min/max values
     diagram_scale: DiagramScale = DiagramScale.LIN
 
     @classmethod
-    def from_dict(cls, attributes_dict: Dict[str, Dict[str, Any]]) -> Iterator["Attribute"]:
+    def from_dict(cls, attributes_dict: dict[str, dict[str, Any]]) -> Iterator[Attribute]:
         """Create `Attribute` from parsed JSON dict."""
         for identifier, dct in attributes_dict.items():
             yield cls(
@@ -85,7 +87,7 @@ class Attribute:
                 diagram_scale=DiagramScale(dct.get("diagramScale", "lin")),
             )
 
-    def to_dict(self) -> Dict[str, Dict[str, Any]]:
+    def to_dict(self) -> dict[str, dict[str, Any]]:
         """Convert into dict for JSON representation."""
         return {
             self.identifier: {
@@ -95,7 +97,7 @@ class Attribute:
                 "format": self.format,
                 "softLimits": self.soft_limits,
                 "diagramScale": str(self.diagram_scale),
-            }
+            },
         }
 
 
@@ -115,20 +117,20 @@ class VirtualChannel:
 
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars), VAE requires int
     name: str  #: Channel group name
-    desc: Optional[str]  #: Channel group description
-    #: List of assigned attribute / channel identifiers.
+    desc: str | None  #: Channel group description
+    #: list of assigned attribute / channel identifiers.
     #: Following channels have specific meaning: AbsDateTime, DSET, X, Y
     #: Following statistics can be applied:
     #: min(id), max(id), avg(id), sum(id), stdDev(id), nbVals(id), var(id), deltaT()
-    attributes: List[str]
+    attributes: list[str]
     #: Properties used for interpretation of the data:
     #: - hardcoded on the server side: STREAM, LOC (require X, Y), STAT (statistics)
     #: - used in VAE: HIT, PAR, ...
     #: Use for example: [STREAM, HIT]
-    properties: Optional[List[str]] = None
+    properties: list[str] | None = None
 
     @classmethod
-    def from_dict(cls, attributes_dict: Dict[str, Dict[str, Any]]) -> Iterator["VirtualChannel"]:
+    def from_dict(cls, attributes_dict: dict[str, dict[str, Any]]) -> Iterator[VirtualChannel]:
         """Create `VirtualChannel` from parsed JSON dict."""
         for identifier, dct in attributes_dict.items():
             yield cls(
@@ -139,7 +141,7 @@ class VirtualChannel:
                 properties=dct.get("prop"),
             )
 
-    def to_dict(self) -> Dict[str, Dict[str, Any]]:
+    def to_dict(self) -> dict[str, dict[str, Any]]:
         """Convert into dict for JSON representation."""
         return {
             self.identifier: {
@@ -147,7 +149,7 @@ class VirtualChannel:
                 "descr": self.desc,
                 "attributes": self.attributes,
                 "prop": self.properties,
-            }
+            },
         }
 
 
@@ -156,8 +158,8 @@ class UploadData:
     """Upload data."""
 
     timestamp: datetime  #: Absolute datetime (unique!)
-    #: List of values in order of the virtual channel attributes
-    data: Sequence[Union[int, float, str]]
+    #: list of values in order of the virtual channel attributes
+    data: Sequence[int | float | str]
 
 
 class RedirectionError(Exception):
@@ -195,7 +197,7 @@ class PayloadTooLargeError(ServerError):
 
 
 def _connection_exception_handling(func):
-    assert asyncio.iscoroutinefunction(func)
+    assert asyncio.iscoroutinefunction(func)  # noqa: S101
 
     @functools.wraps(func)
     async def async_wrapper(*args, **kwargs):
@@ -209,7 +211,7 @@ def _connection_exception_handling(func):
     return async_wrapper
 
 
-async def _check_response(response: aiohttp.ClientResponse, request_body: Optional[str] = None):
+async def _check_response(response: aiohttp.ClientResponse, request_body: str | None = None):
     """Check HTTP client response and handle errors."""
     status = response.status  # e.g. 401
     status_class = status // 100 * 100  # e.g. 400
@@ -300,7 +302,7 @@ class Client:
         await self.close()
 
     @_connection_exception_handling
-    async def get_setup(self) -> Dict:
+    async def get_setup(self) -> dict:
         async with self._session.get(self._url_setup) as response:
             await _check_response(response)
             return await response.json()
@@ -313,7 +315,9 @@ class Client:
 
     @_connection_exception_handling
     async def setup(
-        self, attributes: Sequence[Attribute], virtual_channels: Sequence[VirtualChannel]
+        self,
+        attributes: Sequence[Attribute],
+        virtual_channels: Sequence[VirtualChannel],
     ):
         """
         Upload setup.
@@ -328,44 +332,42 @@ class Client:
         else:
             logger.info("Upload setup")
             query_dict = {
-                "attributes": _merge_dicts(*(attribute.to_dict() for attribute in attributes)),
-                "virtual_channels": _merge_dicts(
-                    *(virtual_channel.to_dict() for virtual_channel in virtual_channels)
-                ),
+                "attributes": _merge_dicts(*(attr.to_dict() for attr in attributes)),
+                "virtual_channels": _merge_dicts(*(vch.to_dict() for vch in virtual_channels)),
             }
             query_json = json.dumps(query_dict)
             async with self._session.post(self._url_setup, data=query_json) as response:
                 await _check_response(response, request_body=query_json)
 
     @_connection_exception_handling
-    async def get_attributes(self) -> List[Attribute]:
+    async def get_attributes(self) -> list[Attribute]:
         """Get list of existing attributes."""
         setup = await self.get_setup()
         return list(Attribute.from_dict(setup["attributes"]))
 
     @_connection_exception_handling
-    async def get_attribute(self, attribute_id: str) -> Optional[Attribute]:
+    async def get_attribute(self, attribute_id: str) -> Attribute | None:
         """Get attribute by identifier."""
         return next(
             filter(
-                lambda a: a.identifier == attribute_id,  # type: ignore
+                lambda a: a.identifier == attribute_id,  # type: ignore[arg-type, union-attr]
                 await self.get_attributes(),
             ),
             None,
         )
 
     @_connection_exception_handling
-    async def get_virtual_channels(self) -> List[VirtualChannel]:
+    async def get_virtual_channels(self) -> list[VirtualChannel]:
         """Get list of existing virtual channels."""
         setup = await self.get_setup()
         return list(VirtualChannel.from_dict(setup["virtual_channels"]))
 
     @_connection_exception_handling
-    async def get_virtual_channel(self, virtual_channel_id: str) -> Optional[VirtualChannel]:
+    async def get_virtual_channel(self, virtual_channel_id: str) -> VirtualChannel | None:
         """Get virtual channel by identifier."""
         return next(
             filter(
-                lambda a: a.identifier == virtual_channel_id,  # type: ignore
+                lambda a: a.identifier == virtual_channel_id,  # type: ignore[arg-type, union-attr]
                 await self.get_virtual_channels(),
             ),
             None,
@@ -379,7 +381,7 @@ class Client:
         Args:
             attribute: Attribute definition
         """
-        existing = {a.identifier: a for a in await self.get_attributes()}
+        existing = {attr.identifier: attr for attr in await self.get_attributes()}
         if attribute.identifier in existing:
             logger.info("Attribute %s already exists", attribute.identifier)
             return
@@ -391,8 +393,8 @@ class Client:
                     "cmdName": "addAttribute",
                     "attributeId": str(attribute.identifier),
                     **attribute.to_dict()[attribute.identifier],
-                }
-            ]
+                },
+            ],
         }
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
@@ -418,8 +420,8 @@ class Client:
                     "cmdName": "addVirtualChannel",
                     "virtualChannelId": str(virtual_channel.identifier),
                     **virtual_channel.to_dict()[virtual_channel.identifier],
-                }
-            ]
+                },
+            ],
         }
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
@@ -427,7 +429,9 @@ class Client:
 
     @_connection_exception_handling
     async def add_virtual_channel_attributes(
-        self, virtual_channel_id: str, attribute_ids: Sequence[str]
+        self,
+        virtual_channel_id: str,
+        attribute_ids: Sequence[str],
     ):
         """
         Add attributes to existing virtual channel.
@@ -443,8 +447,8 @@ class Client:
                     "cmdName": "addVirtualChannelAttributes",
                     "virtualChannelId": str(virtual_channel_id),
                     "attributes": attribute_ids,
-                }
-            ]
+                },
+            ],
         }
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
@@ -499,14 +503,17 @@ class Client:
 
     @_connection_exception_handling
     async def upload_data(
-        self, virtual_channel_id: str, data: Sequence[UploadData], chunksize: int = 128
+        self,
+        virtual_channel_id: str,
+        data: Sequence[UploadData],
+        chunksize: int = 128,
     ):
         """
         Upload data to virtual channel.
 
         Args:
             virtual_channel_id: Identifier of virtual channel
-            data: List of data to upload
+            data: list of data to upload
             chunksize: Default chunksize (chunksize will be reduced on errors)
         """
 
