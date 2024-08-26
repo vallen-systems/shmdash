@@ -9,20 +9,24 @@ Further descriptions of the client functions can be found in the docstrings.
 
 Install the latest version from Git:
 
-```
-pip install 'shmdash @ git+https://github.com/vallen-systems/pySHMdash'
+```sh
+$ pip install 'shmdash @ git+https://github.com/vallen-systems/pySHMdash'
 ```
 
 ## Development setup
 
 ```sh
 # Clone repository
-git clone https://github.com/vallen-systems/pySHMdash
-cd pySHMdash
+$ git clone https://github.com/vallen-systems/pySHMdash
+$ cd pySHMdash
 
 # Install package and development tools
-pip install -e .[dev]
+$ pip install -e .[dev]
 
-# Run checks & tests with tox
-tox
+# Run checks
+$ ruff check .
+$ mypy .
+
+# Run tests
+$ pytest
 ```
