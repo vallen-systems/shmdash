@@ -1,3 +1,6 @@
+[![CI](https://github.com/vallen-systems/pySHMdash/workflows/CI/badge.svg)](https://github.com/vallen-systems/pySHMdash/actions)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
+
 # SHMdash
 
 Python client library for Vallen Systeme Dashboard (SHM Dash).
