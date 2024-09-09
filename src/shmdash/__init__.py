@@ -123,11 +123,11 @@ class VirtualChannel:
     #: Following statistics can be applied:
     #: min(id), max(id), avg(id), sum(id), stdDev(id), nbVals(id), var(id), deltaT()
     attributes: list[str]
-    #: Properties used for interpretation of the data:
+    #: Properties used for interpretation of the data (must contain at least 1 item):
     #: - hardcoded on the server side: STREAM, LOC (require X, Y), STAT (statistics)
     #: - used in VAE: HIT, PAR, ...
     #: Use for example: [STREAM, HIT]
-    properties: list[str] | None = None
+    properties: list[str]
 
     @classmethod
     def from_dict(cls, attributes_dict: dict[str, dict[str, Any]]) -> Iterator[VirtualChannel]:
@@ -135,7 +135,7 @@ class VirtualChannel:
         for identifier, dct in attributes_dict.items():
             yield cls(
                 identifier=str(identifier),
-                name=dct["name"],
+                name=dct.get("name"),
                 desc=dct.get("descr"),
                 attributes=dct["attributes"],
                 properties=dct.get("prop"),
