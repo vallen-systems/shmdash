@@ -66,7 +66,7 @@ class Attribute:
     """
 
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars)
-    desc: str  #: Channel description
+    desc: str | None  #: Channel description
     unit: str | None  #: Measurement unit
     type: AttributeType  #: Type
     format: str | None = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
@@ -79,7 +79,7 @@ class Attribute:
         for identifier, dct in attributes_dict.items():
             yield cls(
                 identifier=identifier,
-                desc=dct["descr"],
+                desc=dct.get("descr"),
                 unit=dct.get("unit"),
                 type=AttributeType(dct["type"]),
                 format=dct["format"],
