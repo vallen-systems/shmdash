@@ -70,7 +70,7 @@ class Attribute:
     unit: str | None  #: Measurement unit
     type: AttributeType  #: Type
     format: str | None = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
-    soft_limits: tuple[float | None, float | None] = (None, None)  #: Min/max values
+    soft_limits: tuple[float | None, float | None] | None = None  #: Min/max values
     diagram_scale: DiagramScale = DiagramScale.LIN
 
     @classmethod
@@ -83,7 +83,7 @@ class Attribute:
                 unit=dct.get("unit"),
                 type=AttributeType(dct["type"]),
                 format=dct.get("format"),
-                soft_limits=dct.get("softLimits", (None, None)),
+                soft_limits=dct.get("softLimits"),
                 diagram_scale=DiagramScale(dct.get("diagramScale", "lin")),
             )
 
