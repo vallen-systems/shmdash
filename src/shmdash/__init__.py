@@ -82,7 +82,7 @@ class Attribute:
                 desc=dct.get("descr"),
                 unit=dct.get("unit"),
                 type=AttributeType(dct["type"]),
-                format=dct["format"],
+                format=dct.get("format"),
                 soft_limits=dct.get("softLimits", (None, None)),
                 diagram_scale=DiagramScale(dct.get("diagramScale", "lin")),
             )
