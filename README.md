@@ -3,10 +3,14 @@
 
 # SHMdash
 
-Python client library for Vallen Systeme Dashboard (SHM Dash).
+Python client library to upload data to a SHM Dashboard server.
 
-Please have a look at the [basic example](examples/basic.py) for usage.
+Have a look at the [basic example](examples/basic.py) for usage.
 Further descriptions of the client functions can be found in the docstrings.
+
+> [!NOTE]
+> The SHM Dashboard is a product from Vallen Systeme to upload data from different sources and locations and instantly access and visualize the data in a dashboard.
+> If you are interested, please check out our [demo dashboard](https://demo.shmdash.de) and contact our sales department [sales@vallen.de](mailto:sales@vallen.de).
 
 ## Installation
 

@@ -50,7 +50,7 @@ class DiagramScale(str, Enum):
 @dataclass
 class Attribute:
     """
-    Attribute / channel defintion.
+    Attribute / channel definition.
 
     Data structure for the JSON/dict representation:
     {
