@@ -124,7 +124,7 @@ class VirtualChannel:
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars), VAE requires int
     name: str | None  #: Channel group name
     desc: str | None  #: Channel group description
-    #: list of assigned attribute / channel identifiers.
+    #: List of assigned attribute / channel identifiers.
     #: Following channels have specific meaning: AbsDateTime, DSET, X, Y
     #: Following statistics can be applied:
     #: min(id), max(id), avg(id), sum(id), stdDev(id), nbVals(id), var(id), deltaT()
@@ -158,6 +158,33 @@ class VirtualChannel:
                     "prop": self.properties,
                 }
             )
+        }
+
+
+@dataclass
+class Setup:
+    """Setup."""
+
+    attributes: list[Attribute]  #: List of attributes
+    virtual_channels: list[VirtualChannel]  #: List of virtual channels
+
+    @classmethod
+    def from_dict(cls, setup_dict: dict[str, Any]) -> Setup:
+        return cls(
+            attributes=list(Attribute.from_dict(setup_dict.get("attributes", {}))),
+            virtual_channels=list(VirtualChannel.from_dict(setup_dict.get("virtual_channels", {}))),
+        )
+
+    def to_dict(self) -> dict[str, dict[str, Any]]:
+        def _merge_dicts(*dcts):
+            result = {}
+            for dct in dcts:
+                result.update(dct)
+            return result
+
+        return {
+            "attributes": _merge_dicts(*(attr.to_dict() for attr in self.attributes)),
+            "virtual_channels": _merge_dicts(*(vch.to_dict() for vch in self.virtual_channels)),
         }
 
 
@@ -267,13 +294,6 @@ async def _check_response(response: aiohttp.ClientResponse, request_body: str | 
     raise RuntimeError(f"Uncaught error: {error_message}")
 
 
-def _merge_dicts(*dcts):
-    result = {}
-    for dct in dcts:
-        result.update(dct)
-    return result
-
-
 class Client:
     """SHM Dash client."""
 
@@ -310,16 +330,17 @@ class Client:
         await self.close()
 
     @_connection_exception_handling
-    async def get_setup(self) -> dict:
+    async def get_setup(self) -> Setup:
         async with self._session.get(self._url_setup) as response:
             await _check_response(response)
-            return await response.json()
+            setup_dict = await response.json()
+            return Setup.from_dict(setup_dict)
 
     @_connection_exception_handling
     async def has_setup(self) -> bool:
         """Check if an setup already exists."""
         setup = await self.get_setup()
-        return bool(setup["attributes"]) and bool(setup["virtual_channels"])
+        return setup.attributes and setup.virtual_channels
 
     @_connection_exception_handling
     async def setup(
@@ -339,10 +360,7 @@ class Client:
                 await self.add_virtual_channel(virtual_channel)
         else:
             logger.info("Upload setup")
-            query_dict = {
-                "attributes": _merge_dicts(*(attr.to_dict() for attr in attributes)),
-                "virtual_channels": _merge_dicts(*(vch.to_dict() for vch in virtual_channels)),
-            }
+            query_dict = Setup(list(attributes), list(virtual_channels)).to_dict()
             query_json = json.dumps(query_dict)
             async with self._session.post(self._url_setup, data=query_json) as response:
                 await _check_response(response, request_body=query_json)
@@ -351,7 +369,7 @@ class Client:
     async def get_attributes(self) -> list[Attribute]:
         """Get list of existing attributes."""
         setup = await self.get_setup()
-        return list(Attribute.from_dict(setup["attributes"]))
+        return setup.attributes
 
     @_connection_exception_handling
     async def get_attribute(self, attribute_id: str) -> Attribute | None:
@@ -368,7 +386,7 @@ class Client:
     async def get_virtual_channels(self) -> list[VirtualChannel]:
         """Get list of existing virtual channels."""
         setup = await self.get_setup()
-        return list(VirtualChannel.from_dict(setup["virtual_channels"]))
+        return setup.virtual_channels
 
     @_connection_exception_handling
     async def get_virtual_channel(self, virtual_channel_id: str) -> VirtualChannel | None:
@@ -521,7 +539,7 @@ class Client:
 
         Args:
             virtual_channel_id: Identifier of virtual channel
-            data: list of data to upload
+            data: List of data to upload
             chunksize: Default chunksize (chunksize will be reduced on errors)
         """
 
