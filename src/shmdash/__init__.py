@@ -47,6 +47,10 @@ class DiagramScale(str, Enum):
         return self.value
 
 
+def _remove_none_values(dct: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in dct.items() if v is not None}
+
+
 @dataclass
 class Attribute:
     """
@@ -71,7 +75,7 @@ class Attribute:
     type: AttributeType  #: Type
     format: str | None = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
     soft_limits: tuple[float | None, float | None] | None = None  #: Min/max values
-    diagram_scale: DiagramScale = DiagramScale.LIN
+    diagram_scale: DiagramScale | None = None  #: Diagram scale
 
     @classmethod
     def from_dict(cls, attributes_dict: dict[str, dict[str, Any]]) -> Iterator[Attribute]:
@@ -84,20 +88,22 @@ class Attribute:
                 type=AttributeType(dct["type"]),
                 format=dct.get("format"),
                 soft_limits=dct.get("softLimits"),
-                diagram_scale=DiagramScale(dct.get("diagramScale", "lin")),
+                diagram_scale=DiagramScale(dct["diagramScale"]) if "diagramScale" in dct else None,
             )
 
     def to_dict(self) -> dict[str, dict[str, Any]]:
         """Convert into dict for JSON representation."""
         return {
-            self.identifier: {
-                "descr": self.desc,
-                "unit": self.unit,
-                "type": str(self.type),
-                "format": self.format,
-                "softLimits": self.soft_limits,
-                "diagramScale": str(self.diagram_scale),
-            },
+            self.identifier: _remove_none_values(
+                {
+                    "descr": self.desc,
+                    "unit": self.unit,
+                    "type": str(self.type),
+                    "format": self.format,
+                    "softLimits": self.soft_limits,
+                    "diagramScale": str(self.diagram_scale) if self.diagram_scale else None,
+                }
+            )
         }
 
 
@@ -116,7 +122,7 @@ class VirtualChannel:
     """
 
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars), VAE requires int
-    name: str  #: Channel group name
+    name: str | None  #: Channel group name
     desc: str | None  #: Channel group description
     #: list of assigned attribute / channel identifiers.
     #: Following channels have specific meaning: AbsDateTime, DSET, X, Y
@@ -127,7 +133,7 @@ class VirtualChannel:
     #: - hardcoded on the server side: STREAM, LOC (require X, Y), STAT (statistics)
     #: - used in VAE: HIT, PAR, ...
     #: Use for example: [STREAM, HIT]
-    properties: list[str]
+    properties: list[str] | None = None
 
     @classmethod
     def from_dict(cls, attributes_dict: dict[str, dict[str, Any]]) -> Iterator[VirtualChannel]:
@@ -144,12 +150,14 @@ class VirtualChannel:
     def to_dict(self) -> dict[str, dict[str, Any]]:
         """Convert into dict for JSON representation."""
         return {
-            self.identifier: {
-                "name": self.name,
-                "descr": self.desc,
-                "attributes": self.attributes,
-                "prop": self.properties,
-            },
+            self.identifier: _remove_none_values(
+                {
+                    "name": self.name,
+                    "descr": self.desc,
+                    "attributes": self.attributes,
+                    "prop": self.properties,
+                }
+            )
         }
 
 
