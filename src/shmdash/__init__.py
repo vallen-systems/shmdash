@@ -1,297 +1,66 @@
+# ruff: noqa: F401
+
 from __future__ import annotations
 
 import asyncio
 import functools
 import json
 import logging
-import re
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import timezone
 from http import HTTPStatus
-from typing import Any, Iterator, Sequence
+from typing import Sequence
 from urllib.parse import urljoin
 
 import aiohttp
 
+from shmdash._datatypes import (
+    Attribute,
+    AttributeType,
+    DiagramScale,
+    Setup,
+    UploadData,
+    VirtualChannel,
+)
+from shmdash._exceptions import ClientError, RequestError, ResponseError
+from shmdash._utils import to_identifier
+
 logger = logging.getLogger(__name__)
 
 
-def to_identifier(identifier: Any) -> str:
-    """Convert to identifier (alphanumeric and "_", max. 32 chars)."""
-    result = str(identifier)
-    result = re.sub(r"[^a-zA-Z0-9_]", "", result)  # remove non-allowed chars
-    return result[:32]  # crop to max. 32 chars
-
-
-class AttributeType(str, Enum):
-    DATETIME = "dateTime"
-    INT16 = "int16"
-    UINT16 = "uint16"
-    INT32 = "int32"
-    UINT32 = "uint32"
-    INT64 = "int64"
-    FLOAT32 = "float32"
-    FLOAT64 = "float64"
-    STRING = "string"
-
-    def __str__(self) -> str:
-        return self.value
-
-
-class DiagramScale(str, Enum):
-    LIN = "lin"
-    LOG = "log"
-
-    def __str__(self) -> str:
-        return self.value
-
-
-def _remove_none_values(dct: dict[str, Any]) -> dict[str, Any]:
-    return {k: v for k, v in dct.items() if v is not None}
-
-
-@dataclass
-class Attribute:
-    """
-    Attribute / channel definition.
-
-    Data structure for the JSON/dict representation:
-    {
-        "AbsDateTime": {
-            "descr": "Absolutetime in ISO8601, UTC Zone (max. μs)",
-            "unit": None,
-            "type": "dateTime",
-            "format": "YYYY-MM-DDThh:mm:ss[.ssssss]Z",
-            "softLimits": [0, None],
-            "diagramScale": "lin",
-        }
-    }
-    """
-
-    identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars)
-    desc: str | None  #: Channel description
-    unit: str | None  #: Measurement unit
-    type: AttributeType  #: Type
-    format: str | None = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
-    soft_limits: tuple[float | None, float | None] | None = None  #: Min/max values
-    diagram_scale: DiagramScale | None = None  #: Diagram scale
-
-    @classmethod
-    def from_dict(cls, attributes_dict: dict[str, dict[str, Any]]) -> Iterator[Attribute]:
-        """Create `Attribute` from parsed JSON dict."""
-        for identifier, dct in attributes_dict.items():
-            yield cls(
-                identifier=identifier,
-                desc=dct.get("descr"),
-                unit=dct.get("unit"),
-                type=AttributeType(dct["type"]),
-                format=dct.get("format"),
-                soft_limits=dct.get("softLimits"),
-                diagram_scale=DiagramScale(dct["diagramScale"]) if "diagramScale" in dct else None,
-            )
-
-    def to_dict(self) -> dict[str, dict[str, Any]]:
-        """Convert into dict for JSON representation."""
-        return {
-            self.identifier: _remove_none_values(
-                {
-                    "descr": self.desc,
-                    "unit": self.unit,
-                    "type": str(self.type),
-                    "format": self.format,
-                    "softLimits": self.soft_limits,
-                    "diagramScale": str(self.diagram_scale) if self.diagram_scale else None,
-                }
-            )
-        }
-
-
-@dataclass
-class VirtualChannel:
-    """
-    Virtual channel / channel group definition.
-
-    Data structure for the JSON/dict representation:
-    "1": {
-        "name": "Control Signal",
-        "descr": "Control signal voltage",
-        "attributes": ["AbsDateTime", "DSET", "VOLTAGE"],
-        "prop": ["STREAM", "PAR"]
-    }
-    """
-
-    identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars), VAE requires int
-    name: str | None  #: Channel group name
-    desc: str | None  #: Channel group description
-    #: List of assigned attribute / channel identifiers.
-    #: Following channels have specific meaning: AbsDateTime, DSET, X, Y
-    #: Following statistics can be applied:
-    #: min(id), max(id), avg(id), sum(id), stdDev(id), nbVals(id), var(id), deltaT()
-    attributes: list[str]
-    #: Properties used for interpretation of the data (must contain at least 1 item):
-    #: - hardcoded on the server side: STREAM, LOC (require X, Y), STAT (statistics)
-    #: - used in VAE: HIT, PAR, ...
-    #: Use for example: [STREAM, HIT]
-    properties: list[str] | None = None
-
-    @classmethod
-    def from_dict(cls, attributes_dict: dict[str, dict[str, Any]]) -> Iterator[VirtualChannel]:
-        """Create `VirtualChannel` from parsed JSON dict."""
-        for identifier, dct in attributes_dict.items():
-            yield cls(
-                identifier=str(identifier),
-                name=dct.get("name"),
-                desc=dct.get("descr"),
-                attributes=dct["attributes"],
-                properties=dct.get("prop"),
-            )
-
-    def to_dict(self) -> dict[str, dict[str, Any]]:
-        """Convert into dict for JSON representation."""
-        return {
-            self.identifier: _remove_none_values(
-                {
-                    "name": self.name,
-                    "descr": self.desc,
-                    "attributes": self.attributes,
-                    "prop": self.properties,
-                }
-            )
-        }
-
-
-@dataclass
-class Setup:
-    """Setup."""
-
-    attributes: list[Attribute]  #: List of attributes
-    virtual_channels: list[VirtualChannel]  #: List of virtual channels
-
-    @classmethod
-    def from_dict(cls, setup_dict: dict[str, Any]) -> Setup:
-        return cls(
-            attributes=list(Attribute.from_dict(setup_dict.get("attributes", {}))),
-            virtual_channels=list(VirtualChannel.from_dict(setup_dict.get("virtual_channels", {}))),
-        )
-
-    def to_dict(self) -> dict[str, dict[str, Any]]:
-        def _merge_dicts(*dcts):
-            result = {}
-            for dct in dcts:
-                result.update(dct)
-            return result
-
-        return {
-            "attributes": _merge_dicts(*(attr.to_dict() for attr in self.attributes)),
-            "virtual_channels": _merge_dicts(*(vch.to_dict() for vch in self.virtual_channels)),
-        }
-
-
-@dataclass
-class UploadData:
-    """Upload data."""
-
-    timestamp: datetime  #: Absolute datetime (unique!)
-    #: list of values in order of the virtual channel attributes
-    data: Sequence[int | float | str]
-
-
-class RedirectionError(Exception):
-    """HTTP status codes 3xx."""
-
-
-class ClientError(Exception):
-    """HTTP status codes 4xx."""
-
-
-class BadRequestError(ClientError):
-    """HTTP status code 400."""
-
-
-class UnauthorizedError(ClientError):
-    """HTTP status code 401."""
-
-
-class ServerError(Exception):
-    """HTTP status codes 5xx."""
-
-
-class PayloadTooLargeError(ServerError):
-    """
-    Special case of HTTP status code 500.
-
-    {
-        "statusCode":500,
-        "timestamp":"2020-07-09T16:15:03.106Z",
-        "path":"/upload/vjson/v1/data",
-        "method":"POST",
-        "message":"PayloadTooLargeError: request entity too large"
-    }
-    """
-
-
-def _connection_exception_handling(func):
+def _request_exception_handling(func):
     assert asyncio.iscoroutinefunction(func)  # noqa: S101
 
     @functools.wraps(func)
     async def async_wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
-        except aiohttp.ServerConnectionError as e:
-            raise ConnectionError(str(e) if str(e) else "Server connection error") from None
-        except aiohttp.ClientConnectionError as e:
-            raise ConnectionError(str(e) if str(e) else "Client connection error") from None
+        except aiohttp.ClientError as e:
+            raise RequestError(str(e)) from e
 
     return async_wrapper
 
 
-async def _check_response(response: aiohttp.ClientResponse, request_body: str | None = None):
+async def _check_response(response: aiohttp.ClientResponse):
     """Check HTTP client response and handle errors."""
-    status = response.status  # e.g. 401
-    status_class = status // 100 * 100  # e.g. 400
+    status = HTTPStatus(response.status)
 
-    if status_class == HTTPStatus.OK:
+    if 200 <= status <= 299:  # noqa: PLR2004
         return
-
-    logger.error(
-        "HTTP %s error for %s request %s: %s",
-        status,
-        response.method,
-        response.url,
-        request_body or "empty",
-    )
 
     response_text = await response.text()
     try:
         response_dict = json.loads(response_text)
+        response_dict.get()
     except ValueError:
         response_dict = {}
 
-    # pylint: disable=consider-using-f-string
-    error_message = "HTTP {code} error for {method} request {url}: {message}".format(
-        code=status,
+    message = response_dict.get("message", response_text)  # JSON dict with message expected
+    raise ResponseError(
+        url=str(response.url),
         method=response.method,
-        url=response.url,
-        message=response_dict.get("message", response_text),  # JSON dict with message expected
+        status=status,
+        message=message if message else None,
     )
-
-    if status_class == HTTPStatus.MULTIPLE_CHOICES:
-        raise RedirectionError(error_message)
-
-    if status_class == HTTPStatus.BAD_REQUEST:
-        if status == HTTPStatus.BAD_REQUEST:
-            raise BadRequestError(error_message)
-        if status == HTTPStatus.UNAUTHORIZED:
-            raise UnauthorizedError(error_message)
-        raise ClientError(error_message)
-
-    if status_class == HTTPStatus.INTERNAL_SERVER_ERROR:
-        if "PayloadTooLargeError" in response_dict.get("message", ""):
-            raise PayloadTooLargeError(error_message)
-        raise ServerError(error_message)
-
-    raise RuntimeError(f"Uncaught error: {error_message}")
 
 
 class Client:
@@ -329,20 +98,20 @@ class Client:
     async def __aexit__(self, exc_type, exc, traceback):
         await self.close()
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def get_setup(self) -> Setup:
         async with self._session.get(self._url_setup) as response:
             await _check_response(response)
             setup_dict = await response.json()
             return Setup.from_dict(setup_dict)
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def has_setup(self) -> bool:
         """Check if an setup already exists."""
         setup = await self.get_setup()
         return setup.attributes and setup.virtual_channels
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def setup(
         self,
         attributes: Sequence[Attribute],
@@ -363,15 +132,15 @@ class Client:
             query_dict = Setup(list(attributes), list(virtual_channels)).to_dict()
             query_json = json.dumps(query_dict)
             async with self._session.post(self._url_setup, data=query_json) as response:
-                await _check_response(response, request_body=query_json)
+                await _check_response(response)
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def get_attributes(self) -> list[Attribute]:
         """Get list of existing attributes."""
         setup = await self.get_setup()
         return setup.attributes
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def get_attribute(self, attribute_id: str) -> Attribute | None:
         """Get attribute by identifier."""
         return next(
@@ -382,13 +151,13 @@ class Client:
             None,
         )
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def get_virtual_channels(self) -> list[VirtualChannel]:
         """Get list of existing virtual channels."""
         setup = await self.get_setup()
         return setup.virtual_channels
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def get_virtual_channel(self, virtual_channel_id: str) -> VirtualChannel | None:
         """Get virtual channel by identifier."""
         return next(
@@ -399,7 +168,7 @@ class Client:
             None,
         )
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def add_attribute(self, attribute: Attribute):
         """
         Add attribute / channel.
@@ -424,9 +193,9 @@ class Client:
         }
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await _check_response(response, request_body=query_json)
+            await _check_response(response)
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def add_virtual_channel(self, virtual_channel: VirtualChannel):
         """
         Add virtual channel / channel group.
@@ -451,9 +220,9 @@ class Client:
         }
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await _check_response(response, request_body=query_json)
+            await _check_response(response)
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def add_virtual_channel_attributes(
         self,
         virtual_channel_id: str,
@@ -478,9 +247,9 @@ class Client:
         }
         query_json = json.dumps(query_dict)
         async with self._session.post(self._url_commands, data=query_json) as response:
-            await _check_response(response, request_body=query_json)
+            await _check_response(response)
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def _upload_data_chunk(self, virtual_channel_id: str, data: Sequence[UploadData]):
         def convert_datetime(timestamp):
             return timestamp.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -492,7 +261,7 @@ class Client:
         query_json = json.dumps(query_dict)
 
         async with self._session.post(self._url_data, data=query_json) as response:
-            await _check_response(response, request_body=query_json)
+            await _check_response(response)
 
             # expected reponse:
             # {
@@ -519,15 +288,9 @@ class Client:
                 if "error" in results:
                     error_message = results["error"]
                     error_prefix = f"Error uploading to virtual channel {identifier}"
-
-                    if "ChannelGroup not found" in error_message:
-                        raise ValueError(f"{error_prefix}: {identifier} does not exist")
-                    if "INSERT has more expressions than target columns" in error_message:
-                        raise ValueError(f"{error_prefix}: {error_message}")
-
                     logger.warning("%s, ignore data: %s", error_prefix, error_message)
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def upload_data(
         self,
         virtual_channel_id: str,
@@ -540,7 +303,7 @@ class Client:
         Args:
             virtual_channel_id: Identifier of virtual channel
             data: List of data to upload
-            chunksize: Default chunksize (chunksize will be reduced on errors)
+            chunksize: Default chunk size (chunk size will be reduced on errors)
         """
 
         def chunks(lst, n):
@@ -552,14 +315,17 @@ class Client:
         for data_chunk in chunks(data, chunksize):
             try:
                 await self._upload_data_chunk(virtual_channel_id, data_chunk)
-            except PayloadTooLargeError as e:  # noqa:PERF203
-                new_chunksize = int(chunksize / 2)
-                logger.warning("%s. Retry with smaller chunksize %d", e, new_chunksize)
-                if new_chunksize <= 1:
+            except ResponseError as e:  # noqa:PERF203
+                if e.status == HTTPStatus.REQUEST_ENTITY_TOO_LARGE:
+                    new_chunksize = int(chunksize / 2)
+                    logger.warning("%s. Retry with smaller chunksize %d", e, new_chunksize)
+                    if new_chunksize <= 1:
+                        raise
+                    await self.upload_data(virtual_channel_id, data_chunk, chunksize=new_chunksize)
+                else:
                     raise
-                await self.upload_data(virtual_channel_id, data_chunk, chunksize=new_chunksize)
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def delete_data(self):
         """
         Delete all time-series data.
@@ -571,7 +337,7 @@ class Client:
         async with self._session.delete(url) as response:
             await _check_response(response)
 
-    @_connection_exception_handling
+    @_request_exception_handling
     async def recreate(self):
         """
         Delete all time-series data and setup information.
