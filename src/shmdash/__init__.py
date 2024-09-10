@@ -44,7 +44,7 @@ async def _check_response(response: aiohttp.ClientResponse):
     """Check HTTP client response and handle errors."""
     status = HTTPStatus(response.status)
 
-    if status.is_success:
+    if 200 <= status <= 299:  # noqa: PLR2004
         return
 
     response_text = await response.text()
