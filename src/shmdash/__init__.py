@@ -13,9 +13,16 @@ from urllib.parse import urljoin
 
 import aiohttp
 
-from ._datatypes import Attribute, AttributeType, DiagramScale, Setup, UploadData, VirtualChannel
-from ._exceptions import ClientError, RequestError, ResponseError
-from ._utils import to_identifier
+from shmdash._datatypes import (
+    Attribute,
+    AttributeType,
+    DiagramScale,
+    Setup,
+    UploadData,
+    VirtualChannel,
+)
+from shmdash._exceptions import ClientError, RequestError, ResponseError
+from shmdash._utils import to_identifier
 
 logger = logging.getLogger(__name__)
 
