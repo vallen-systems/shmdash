@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from http import HTTPMethod, HTTPStatus
+from http import HTTPStatus
 
 
 class ClientError(Exception):
@@ -29,15 +29,15 @@ class ResponseError(ClientError):
     def __init__(
         self,
         url: str,
-        method: str | HTTPMethod,
-        status: int | HTTPStatus,
+        method: str,
+        status: int,
         message: str | None = None,
     ):
         self.url = url
-        self.method = HTTPMethod(method)
-        self.status = HTTPStatus(status)
+        self.method = method
+        self.status = status
 
         super().__init__(
-            f"{self.method} request to {self.url} failed with status {self.status} "
-            f"({self.status.phrase})" + (f": {message}" if message else "")
+            f"{method} request to {url} failed with status {status} ({HTTPStatus(status).phrase})"
+            + (f": {message}" if message else "")
         )
