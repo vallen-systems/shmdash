@@ -152,6 +152,10 @@ class Setup:
     attributes: list[Attribute]  #: List of attributes
     virtual_channels: list[VirtualChannel]  #: List of virtual channels
 
+    def is_empty(self) -> bool:
+        """Check if the setup is empty."""
+        return not self.attributes and not self.virtual_channels
+
     @classmethod
     def from_dict(cls, setup_dict: dict[str, Any]) -> Setup:
         return cls(

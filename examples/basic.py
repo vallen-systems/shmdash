@@ -93,8 +93,7 @@ async def main():
 
         # setup attributes and virtual channel
         await client.setup(ATTRIBUTES, VIRTUAL_CHANNELS)
-        print(await client.get_attributes())
-        print(await client.get_virtual_channels())
+        print(await client.get_setup())
 
         # upload random data
         while True:
