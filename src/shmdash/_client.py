@@ -104,21 +104,6 @@ class Client:
             for virtual_channel in virtual_channels:
                 await self.add_virtual_channel(virtual_channel)
 
-    async def get_virtual_channels(self) -> list[VirtualChannel]:
-        """Get list of existing virtual channels."""
-        setup = await self.get_setup()
-        return setup.virtual_channels
-
-    async def get_virtual_channel(self, virtual_channel_id: str) -> VirtualChannel | None:
-        """Get virtual channel by identifier."""
-        return next(
-            filter(
-                lambda a: a.identifier == virtual_channel_id,  # type: ignore[arg-type, union-attr]
-                await self.get_virtual_channels(),
-            ),
-            None,
-        )
-
     async def add_attribute(self, attribute: Attribute):
         """
         Add attribute / channel.
@@ -152,7 +137,8 @@ class Client:
         Args:
             virtual_channel: Virtual channel definition
         """
-        existing = {vc.identifier: vc for vc in await self.get_virtual_channels()}
+        setup = await self.get_setup()
+        existing = {vc.identifier: vc for vc in setup.virtual_channels}
         if str(virtual_channel.identifier) in existing:
             logger.info("Virtual channel %s already exists", virtual_channel.identifier)
             return
