@@ -136,9 +136,11 @@ def test_setup():
     setup = Setup.from_dict(SETUP_DICT)
     assert len(setup.attributes) == 4
     assert len(setup.virtual_channels) == 2
+    assert not setup.is_empty()
 
 
 def test_setup_empty():
     setup = Setup.from_dict({"attributes": {}, "virtual_channels": {}})
     assert len(setup.attributes) == 0
     assert len(setup.virtual_channels) == 0
+    assert setup.is_empty()

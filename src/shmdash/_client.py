@@ -82,11 +82,6 @@ class Client:
         response = await self._session.get(self._url_setup)
         return Setup.from_dict(response.json())
 
-    async def has_setup(self) -> bool:
-        """Check if an setup already exists."""
-        setup = await self.get_setup()
-        return len(setup.attributes) > 0 and len(setup.virtual_channels) > 0
-
     async def setup(
         self,
         attributes: Sequence[Attribute],
@@ -97,16 +92,17 @@ class Client:
 
         If a setup already exists, attributes and virtual channels are added to the existing setup.
         """
-        if await self.has_setup():
-            for attribute in attributes:
-                await self.add_attribute(attribute)
-            for virtual_channel in virtual_channels:
-                await self.add_virtual_channel(virtual_channel)
-        else:
+        setup = await self.get_setup()
+        if setup.is_empty():
             logger.info("Upload setup")
             query = Setup(list(attributes), list(virtual_channels)).to_dict()
             response = await self._session.post(self._url_setup, data=json.dumps(query))
             self._check_response(response)
+        else:
+            for attribute in attributes:
+                await self.add_attribute(attribute)
+            for virtual_channel in virtual_channels:
+                await self.add_virtual_channel(virtual_channel)
 
     async def get_attributes(self) -> list[Attribute]:
         """Get list of existing attributes."""
