@@ -8,7 +8,9 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 
-class AttributeType(str, Enum):
+class AttributeType(Enum):
+    """Attribute type."""
+
     DATETIME = "dateTime"
     INT16 = "int16"
     UINT16 = "uint16"
@@ -19,16 +21,12 @@ class AttributeType(str, Enum):
     FLOAT64 = "float64"
     STRING = "string"
 
-    def __str__(self) -> str:
-        return self.value
 
+class DiagramScale(Enum):
+    """Diagram scale."""
 
-class DiagramScale(str, Enum):
     LIN = "lin"
     LOG = "log"
-
-    def __str__(self) -> str:
-        return self.value
 
 
 def _remove_none_values(dct: dict[str, Any]) -> dict[str, Any]:
@@ -83,10 +81,10 @@ class Attribute:
             {
                 "descr": self.desc,
                 "unit": self.unit,
-                "type": str(self.type),
+                "type": self.type.value,
                 "format": self.format,
                 "softLimits": self.soft_limits,
-                "diagramScale": str(self.diagram_scale) if self.diagram_scale else None,
+                "diagramScale": self.diagram_scale.value if self.diagram_scale else None,
             }
         )
 
@@ -123,7 +121,7 @@ class VirtualChannel:
     def from_dict(cls, identifier: str, fields: dict[str, Any]) -> VirtualChannel:
         """Create `VirtualChannel` from parsed JSON dict."""
         return cls(
-            identifier=str(identifier),
+            identifier=identifier,
             name=fields.get("name"),
             desc=fields.get("descr"),
             attributes=fields["attributes"],
