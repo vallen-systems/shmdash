@@ -34,13 +34,9 @@ class Client:
             verify_ssl: Check SSL certifications
         """
         logger.info("Initialize SHM Dash client: %s", url)
+        self._url = url
 
-        self._url_api = urljoin(url, "/upload/vjson/v1/")
-        self._url_setup = urljoin(self._url_api, "setup")
-        self._url_data = urljoin(self._url_api, "data")
-        self._url_commands = urljoin(self._url_api, "commands")
-
-        logger.debug("Open SHM Dash HTTP client session")
+        logger.debug("Create SHM Dash HTTP client session")
         self._session = http_session(
             options=HTTPSessionOptions(
                 headers={
@@ -56,6 +52,10 @@ class Client:
 
     async def __aexit__(self, exc_type, exc, traceback):
         await self.close()
+
+    def _endpoint_url(self, endpoint: str):
+        base_upload_url = urljoin(self._url, "/upload/vjson/v1/")
+        return urljoin(base_upload_url, endpoint)
 
     @staticmethod
     def _check_response(response: HTTPResponse):
@@ -79,7 +79,7 @@ class Client:
             )
 
     async def get_setup(self) -> Setup:
-        response = await self._session.get(self._url_setup)
+        response = await self._session.get(self._endpoint_url("setup"))
         self._check_response(response)
         return Setup.from_dict(response.json())
 
@@ -97,7 +97,7 @@ class Client:
         if setup.is_empty():
             logger.info("Upload setup")
             query = Setup(list(attributes), list(virtual_channels)).to_dict()
-            response = await self._session.post(self._url_setup, data=json.dumps(query))
+            response = await self._session.post(self._endpoint_url("setup"), data=json.dumps(query))
             self._check_response(response)
         else:
             existing_attribute_ids = {attr.identifier: attr for attr in setup.attributes}
@@ -130,7 +130,7 @@ class Client:
                 },
             ],
         }
-        response = await self._session.post(self._url_commands, data=json.dumps(query))
+        response = await self._session.post(self._endpoint_url("commands"), data=json.dumps(query))
         self._check_response(response)
 
     async def add_virtual_channel(self, virtual_channel: VirtualChannel):
@@ -150,7 +150,7 @@ class Client:
                 },
             ],
         }
-        response = await self._session.post(self._url_commands, data=json.dumps(query))
+        response = await self._session.post(self._endpoint_url("commands"), data=json.dumps(query))
         self._check_response(response)
 
     async def add_virtual_channel_attributes(
@@ -175,7 +175,7 @@ class Client:
                 },
             ],
         }
-        response = await self._session.post(self._url_commands, data=json.dumps(query))
+        response = await self._session.post(self._endpoint_url("commands"), data=json.dumps(query))
         self._check_response(response)
 
     async def _upload_data_chunk(self, virtual_channel_id: str, data: Sequence[UploadData]):
@@ -186,7 +186,7 @@ class Client:
             "conflict": "IGNORE",
             "data": [[virtual_channel_id, convert_datetime(d.timestamp), *d.data] for d in data],
         }
-        response = await self._session.post(self._url_data, data=json.dumps(query))
+        response = await self._session.post(self._endpoint_url("data"), data=json.dumps(query))
         self._check_response(response)
 
         # expected reponse:
@@ -256,8 +256,7 @@ class Client:
         Data of other upload sources (different API keys) won't be affected.
         """
         logger.warning("Delete all data")
-        url = urljoin(self._url_api, "/dev/timeseriesdata")
-        response = await self._session.delete(url)
+        response = await self._session.delete(self._endpoint_url("dev/timeseriesdata"))
         self._check_response(response)
 
     async def recreate(self):
@@ -267,8 +266,7 @@ class Client:
         Data and setups of other upload sources (different API keys) won't be affected.
         """
         logger.warning("Delete all data and setup information")
-        url = urljoin(self._url_api, "/dev/recreate")
-        response = await self._session.get(url)
+        response = await self._session.get(self._endpoint_url("dev/recreate"))
         self._check_response(response)
 
     async def close(self):
