@@ -3,18 +3,14 @@ from shmdash import Attribute, AttributeType, DiagramScale, Setup, VirtualChanne
 
 def test_attribute():
     attribute_dict = {
-        "Identifier": {
-            "descr": "Description",
-            "unit": "Unit",
-            "type": "float32",
-            "format": "%.2f",
-            "softLimits": (0, None),
-            "diagramScale": "lin",
-        },
+        "descr": "Description",
+        "unit": "Unit",
+        "type": "float32",
+        "format": "%.2f",
+        "softLimits": (0, None),
+        "diagramScale": "lin",
     }
-
-    attributes = list(Attribute.from_dict(attribute_dict))
-    attribute = attributes[0]
+    attribute = Attribute.from_dict("Identifier", attribute_dict)
 
     assert attribute.identifier == "Identifier"
     assert attribute.desc == "Description"
@@ -24,15 +20,12 @@ def test_attribute():
     assert attribute.soft_limits == (0, None)
     assert attribute.diagram_scale == DiagramScale.LIN
 
-    attribute_dict_parsed = attribute.to_dict()
-    assert attribute_dict_parsed == attribute_dict
+    assert attribute.to_dict() == attribute_dict
 
 
 def test_attribute_minimal():
-    attribute_dict = {"Identifier": {"type": "float32"}}
-
-    attributes = list(Attribute.from_dict(attribute_dict))
-    attribute = attributes[0]
+    attribute_dict = {"type": "float32"}
+    attribute = Attribute.from_dict("Identifier", attribute_dict)
 
     assert attribute.identifier == "Identifier"
     assert attribute.desc is None
@@ -42,22 +35,17 @@ def test_attribute_minimal():
     assert attribute.soft_limits is None
     assert attribute.diagram_scale is None
 
-    attribute_dict_parsed = attribute.to_dict()
-    assert attribute_dict_parsed == attribute_dict
+    assert attribute.to_dict() == attribute_dict
 
 
 def test_virtual_channel():
     virtual_channel_dict = {
-        "Identifier": {
-            "name": "Name",
-            "descr": "Description",
-            "attributes": ["AbsDateTime", "DSET", "A"],
-            "prop": ["STREAM", "HIT"],
-        },
+        "name": "Name",
+        "descr": "Description",
+        "attributes": ["AbsDateTime", "DSET", "A"],
+        "prop": ["STREAM", "HIT"],
     }
-
-    virtual_channels = list(VirtualChannel.from_dict(virtual_channel_dict))
-    virtual_channel = virtual_channels[0]
+    virtual_channel = VirtualChannel.from_dict("Identifier", virtual_channel_dict)
 
     assert virtual_channel.identifier == "Identifier"
     assert virtual_channel.name == "Name"
@@ -65,17 +53,12 @@ def test_virtual_channel():
     assert virtual_channel.attributes == ["AbsDateTime", "DSET", "A"]
     assert virtual_channel.properties == ["STREAM", "HIT"]
 
-    virtual_channel_dict_parsed = virtual_channel.to_dict()
-    assert virtual_channel_dict_parsed == virtual_channel_dict
+    assert virtual_channel.to_dict() == virtual_channel_dict
 
 
 def test_virtual_channel_minimal():
-    virtual_channel_dict = {
-        "Identifier": {"attributes": ["AbsDateTime", "DSET", "A"]},
-    }
-
-    virtual_channels = list(VirtualChannel.from_dict(virtual_channel_dict))
-    virtual_channel = virtual_channels[0]
+    virtual_channel_dict = {"attributes": ["AbsDateTime", "DSET", "A"]}
+    virtual_channel = VirtualChannel.from_dict("Identifier", virtual_channel_dict)
 
     assert virtual_channel.identifier == "Identifier"
     assert virtual_channel.name is None
@@ -83,8 +66,7 @@ def test_virtual_channel_minimal():
     assert virtual_channel.attributes == ["AbsDateTime", "DSET", "A"]
     assert virtual_channel.properties is None
 
-    virtual_channel_dict_parsed = virtual_channel.to_dict()
-    assert virtual_channel_dict_parsed == virtual_channel_dict
+    assert virtual_channel.to_dict() == virtual_channel_dict
 
 
 SETUP_DICT = {

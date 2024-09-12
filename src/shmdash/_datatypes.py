@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Iterator, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -62,33 +62,33 @@ class Attribute:
     diagram_scale: DiagramScale | None = None  #: Diagram scale
 
     @classmethod
-    def from_dict(cls, attributes_dict: dict[str, dict[str, Any]]) -> Iterator[Attribute]:
+    def from_dict(cls, identifier: str, fields: dict[str, Any]) -> Attribute:
         """Create `Attribute` from parsed JSON dict."""
-        for identifier, dct in attributes_dict.items():
-            yield cls(
-                identifier=identifier,
-                desc=dct.get("descr"),
-                unit=dct.get("unit"),
-                type=AttributeType(dct["type"]),
-                format=dct.get("format"),
-                soft_limits=dct.get("softLimits"),
-                diagram_scale=DiagramScale(dct["diagramScale"]) if "diagramScale" in dct else None,
-            )
 
-    def to_dict(self) -> dict[str, dict[str, Any]]:
+        return cls(
+            identifier=identifier,
+            desc=fields.get("descr"),
+            unit=fields.get("unit"),
+            type=AttributeType(fields["type"]),
+            format=fields.get("format"),
+            soft_limits=fields.get("softLimits"),
+            diagram_scale=(
+                DiagramScale(fields["diagramScale"]) if "diagramScale" in fields else None
+            ),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert into dict for JSON representation."""
-        return {
-            self.identifier: _remove_none_values(
-                {
-                    "descr": self.desc,
-                    "unit": self.unit,
-                    "type": str(self.type),
-                    "format": self.format,
-                    "softLimits": self.soft_limits,
-                    "diagramScale": str(self.diagram_scale) if self.diagram_scale else None,
-                }
-            )
-        }
+        return _remove_none_values(
+            {
+                "descr": self.desc,
+                "unit": self.unit,
+                "type": str(self.type),
+                "format": self.format,
+                "softLimits": self.soft_limits,
+                "diagramScale": str(self.diagram_scale) if self.diagram_scale else None,
+            }
+        )
 
 
 @dataclass
@@ -120,29 +120,26 @@ class VirtualChannel:
     properties: list[str] | None = None
 
     @classmethod
-    def from_dict(cls, attributes_dict: dict[str, dict[str, Any]]) -> Iterator[VirtualChannel]:
+    def from_dict(cls, identifier: str, fields: dict[str, Any]) -> VirtualChannel:
         """Create `VirtualChannel` from parsed JSON dict."""
-        for identifier, dct in attributes_dict.items():
-            yield cls(
-                identifier=str(identifier),
-                name=dct.get("name"),
-                desc=dct.get("descr"),
-                attributes=dct["attributes"],
-                properties=dct.get("prop"),
-            )
+        return cls(
+            identifier=str(identifier),
+            name=fields.get("name"),
+            desc=fields.get("descr"),
+            attributes=fields["attributes"],
+            properties=fields.get("prop"),
+        )
 
-    def to_dict(self) -> dict[str, dict[str, Any]]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert into dict for JSON representation."""
-        return {
-            self.identifier: _remove_none_values(
-                {
-                    "name": self.name,
-                    "descr": self.desc,
-                    "attributes": self.attributes,
-                    "prop": self.properties,
-                }
-            )
-        }
+        return _remove_none_values(
+            {
+                "name": self.name,
+                "descr": self.desc,
+                "attributes": self.attributes,
+                "prop": self.properties,
+            }
+        )
 
 
 @dataclass
@@ -159,20 +156,20 @@ class Setup:
     @classmethod
     def from_dict(cls, setup_dict: dict[str, Any]) -> Setup:
         return cls(
-            attributes=list(Attribute.from_dict(setup_dict.get("attributes", {}))),
-            virtual_channels=list(VirtualChannel.from_dict(setup_dict.get("virtual_channels", {}))),
+            attributes=[
+                Attribute.from_dict(identifier, fields)
+                for identifier, fields in setup_dict.get("attributes", {}).items()
+            ],
+            virtual_channels=[
+                VirtualChannel.from_dict(identifier, fields)
+                for identifier, fields in setup_dict.get("virtual_channels", {}).items()
+            ],
         )
 
     def to_dict(self) -> dict[str, dict[str, Any]]:
-        def _merge_dicts(*dcts):
-            result = {}
-            for dct in dcts:
-                result.update(dct)
-            return result
-
         return {
-            "attributes": _merge_dicts(*(attr.to_dict() for attr in self.attributes)),
-            "virtual_channels": _merge_dicts(*(vch.to_dict() for vch in self.virtual_channels)),
+            "attributes": {attr.identifier: attr.to_dict() for attr in self.attributes},
+            "virtual_channels": {vc.identifier: vc.to_dict() for vc in self.virtual_channels},
         }
 
 

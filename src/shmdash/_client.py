@@ -130,7 +130,7 @@ class Client:
             {
                 "cmdName": "addAttribute",
                 "attributeId": str(attribute.identifier),
-                **attribute.to_dict()[attribute.identifier],
+                **attribute.to_dict(),
             },
         ]
         await self._post_commands(commands)
@@ -147,7 +147,7 @@ class Client:
             {
                 "cmdName": "addVirtualChannel",
                 "virtualChannelId": str(virtual_channel.identifier),
-                **virtual_channel.to_dict()[virtual_channel.identifier],
+                **virtual_channel.to_dict(),
             },
         ]
         await self._post_commands(commands)
