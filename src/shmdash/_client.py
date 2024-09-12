@@ -80,6 +80,7 @@ class Client:
 
     async def get_setup(self) -> Setup:
         response = await self._session.get(self._url_setup)
+        self._check_response(response)
         return Setup.from_dict(response.json())
 
     async def setup(
