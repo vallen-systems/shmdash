@@ -174,76 +174,53 @@ class Client:
         ]
         await self._post_commands(commands)
 
-    async def _upload_data_chunk(self, virtual_channel_id: str, data: Sequence[UploadData]):
-        def convert_datetime(timestamp):
-            return timestamp.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-
-        query = {
-            "conflict": "IGNORE",
-            "data": [[virtual_channel_id, convert_datetime(d.timestamp), *d.data] for d in data],
-        }
-        response = await self._session.post(self._endpoint_url("data"), data=json.dumps(query))
-        self._check_response(response)
-
-        # expected reponse:
-        # {
-        #     "0": {
-        #         "success": 2
-        #     },
-        #     "1": {
-        #         "error": "Key (abs_date_time)=(2018-09-27 15:51:14) already exists."
-        #     }
-        # }
-
-        response_json = response.json()
-        for identifier, results in response_json.items():
-            unsuccessful_uploads = len(data) - results.get("success", len(data))
-            if unsuccessful_uploads > 0:
-                logger.warning(
-                    "Ignored %d/%d uploads to virtual channel %s: Timestamps already exist",
-                    unsuccessful_uploads,
-                    len(data),
-                    identifier,
-                )
-
-            if "error" in results:
-                error_message = results["error"]
-                error_prefix = f"Error uploading to virtual channel {identifier}"
-                logger.warning("%s, ignore data: %s", error_prefix, error_message)
-
-    async def upload_data(
-        self,
-        virtual_channel_id: str,
-        data: Sequence[UploadData],
-        chunksize: int = 128,
-    ):
+    async def upload_data(self, virtual_channel_id: str, data: Sequence[UploadData]):
         """
         Upload data to virtual channel.
 
         Args:
             virtual_channel_id: Identifier of virtual channel
             data: List of data to upload
-            chunksize: Default chunk size (chunk size will be reduced on errors)
         """
-
-        def chunks(lst, n):
-            """Yield successive n-sized chunks from lst."""
-            for i in range(0, len(lst), n):
-                yield lst[i : i + n]
-
         logger.debug("Upload %d data sets to virtual channel %s", len(data), virtual_channel_id)
-        for data_chunk in chunks(data, chunksize):
-            try:
-                await self._upload_data_chunk(virtual_channel_id, data_chunk)
-            except ResponseError as e:  # noqa:PERF203
-                if e.status == HTTPStatus.REQUEST_ENTITY_TOO_LARGE:
-                    new_chunksize = int(chunksize / 2)
-                    logger.warning("%s. Retry with smaller chunksize %d", e, new_chunksize)
-                    if new_chunksize <= 1:
-                        raise
-                    await self.upload_data(virtual_channel_id, data_chunk, chunksize=new_chunksize)
-                else:
-                    raise
+        query = {
+            "conflict": "IGNORE",
+            "data": [
+                (
+                    virtual_channel_id,
+                    d.timestamp.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+                    *d.data,
+                )
+                for d in data
+            ],
+        }
+
+        try:
+            response = await self._session.post(self._endpoint_url("data"), data=json.dumps(query))
+            self._check_response(response)
+            # expected reponse:
+            # {
+            #     "0": { "success": 2 },
+            #     "1": { "error": "Key (abs_date_time)=(2018-09-27 15:51:14) already exists." }
+            # }
+            for identifier, results in response.json().items():
+                unsuccessful = len(data) - results.get("success", len(data))
+                if unsuccessful > 0:
+                    logger.warning(
+                        "Ignored %d uploads to virtual channel %s", unsuccessful, identifier
+                    )
+                if "error" in results:
+                    logger.warning(
+                        "Error uploading to virtual channel %s: %s", identifier, results["error"]
+                    )
+        except ResponseError as e:
+            if e.status == HTTPStatus.REQUEST_ENTITY_TOO_LARGE and len(data) > 1:
+                mid = len(data) // 2
+                logger.debug("Retry upload with smaller batch size: %d", mid)
+                await self.upload_data(virtual_channel_id, data[:mid])
+                await self.upload_data(virtual_channel_id, data[mid:])
+            else:
+                raise
 
     async def delete_data(self):
         """

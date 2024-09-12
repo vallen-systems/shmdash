@@ -1,5 +1,4 @@
 import json
-import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -289,39 +288,43 @@ async def test_upload(mock):
     )
 
 
-async def test_upload_payload_too_large(mock, caplog):
-    caplog.set_level(logging.ERROR)  # suppress warning logs
+async def test_upload_payload_too_large(mock):
     mock.http_session.post = AsyncMock(return_value=json_response({}, status=413))
 
     with pytest.raises(shmdash.ResponseError):
-        await mock.client.upload_data("0", [UPLOAD_DATA for _ in range(16)])
+        await mock.client.upload_data("0", [UPLOAD_DATA] * 16)
 
-    assert mock.http_session.post.await_count > 1
+    assert mock.http_session.post.await_count == 5
+
+    def upload_data_count(await_args):
+        return len(json.loads(await_args[1]["data"])["data"])
+
+    assert upload_data_count(mock.http_session.post.await_args_list[0]) == 16
+    assert upload_data_count(mock.http_session.post.await_args_list[1]) == 8
+    assert upload_data_count(mock.http_session.post.await_args_list[2]) == 4
+    assert upload_data_count(mock.http_session.post.await_args_list[3]) == 2
+    assert upload_data_count(mock.http_session.post.await_args_list[4]) == 1
 
 
-async def test_delete_data(mock, caplog):
-    caplog.set_level(logging.ERROR)  # suppress warning logs
+async def test_delete_data(mock):
     mock.http_session.delete = AsyncMock(return_value=json_response({}))
     await mock.client.delete_data()
     mock.http_session.delete.assert_awaited_once_with(URL_DEV_DATA)
 
 
-async def test_delete_data_error(mock, caplog):
-    caplog.set_level(logging.ERROR)  # suppress warning logs
+async def test_delete_data_error(mock):
     mock.http_session.delete = AsyncMock(return_value=json_response({}, status=400))
     with pytest.raises(shmdash.ResponseError):
         await mock.client.delete_data()
 
 
-async def test_recreate(mock, caplog):
-    caplog.set_level(logging.ERROR)  # suppress warning logs
+async def test_recreate(mock):
     mock.http_session.get = AsyncMock(return_value=json_response({}))
     await mock.client.recreate()
     mock.http_session.get.assert_awaited_once_with(URL_DEV_RECREATE)
 
 
-async def test_recreate_error(mock, caplog):
-    caplog.set_level(logging.ERROR)  # suppress warning logs
+async def test_recreate_error(mock):
     mock.http_session.get = AsyncMock(return_value=json_response({}, status=400))
     with pytest.raises(shmdash.ResponseError):
         await mock.client.recreate()
