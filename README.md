@@ -1,4 +1,4 @@
-[![CI](https://github.com/vallen-systems/pySHMdash/workflows/CI/badge.svg)](https://github.com/vallen-systems/pySHMdash/actions)
+[![CI](https://github.com/vallen-systems/shmdash/workflows/CI/badge.svg)](https://github.com/vallen-systems/shmdash/actions)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
 
 # SHMdash
@@ -17,15 +17,15 @@ Further descriptions of the client functions can be found in the docstrings.
 Install the latest version from Git:
 
 ```sh
-$ pip install 'shmdash @ git+https://github.com/vallen-systems/pySHMdash'
+$ pip install 'shmdash @ git+https://github.com/vallen-systems/shmdash'
 ```
 
 ## Development setup
 
 ```sh
 # Clone repository
-$ git clone https://github.com/vallen-systems/pySHMdash
-$ cd pySHMdash
+$ git clone https://github.com/vallen-systems/shmdash
+$ cd shmdash
 
 # Install package and development tools
 $ pip install -e .[dev]
