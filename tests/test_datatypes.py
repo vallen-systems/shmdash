@@ -69,55 +69,31 @@ def test_virtual_channel_minimal():
     assert virtual_channel.to_dict() == virtual_channel_dict
 
 
-SETUP_DICT = {
-    "attributes": {
-        "AbsDateTime": {
-            "descr": "Absolutetime in ISO8601, UTC Zone (max. µs)",
-            "type": "dateTime",
-            "format": "YYYY-MM-DDThh:mm:ss[.ssssss]Z",
-        },
-        "REFNO": {
-            "descr": "Increasing reference number",
-            "softLimits": [0, None],
-            "diagramScale": "lin",
-            "type": "int64",
-            "format": "%d",
-        },
-        "VOLTAGE": {
-            "unit": "mV",
-            "descr": "Control Voltage",
-            "softLimits": [0, 100],
-            "diagramScale": "lin",
-            "type": "float32",
-            "format": "%.2f",
-        },
-        "TEMP1": {
-            "unit": "°C",
-            "descr": "Outside temperature",
-            "softLimits": [-60, 100],
-            "diagramScale": "lin",
-            "type": "float32",
-            "format": "%.1f",
-        },
-    },
-    "virtual_channels": {
-        "0": {
-            "name": "Temperature sensor 1",
-            "attributes": ["AbsDateTime", "REFNO", "min(TEMP1)", "max(TEMP1)"],
-        },
-        "1": {
-            "name": "Control Signal",
-            "descr": "Control signal voltage",
-            "attributes": ["AbsDateTime", "REFNO", "VOLTAGE"],
-        },
-    },
-}
-
-
 def test_setup():
-    setup = Setup.from_dict(SETUP_DICT)
-    assert len(setup.attributes) == 4
-    assert len(setup.virtual_channels) == 2
+    setup_dict = {
+        "attributes": {
+            "AbsDateTime": {
+                "descr": "Absolute time UTC",
+                "type": "dateTime",
+                "format": "YYYY-MM-DDThh:mm:ss.ssssssZ",
+            },
+            "Pressure": {
+                "descr": "Atmospheric pressure",
+                "unit": "hPa",
+                "type": "float32",
+                "format": "%.2f",
+                "softLimits": (900, 1100),
+            },
+        },
+        "virtual_channels": {
+            "0": {
+                "attributes": ["AbsDateTime", "Pressure"],
+            },
+        },
+    }
+    setup = Setup.from_dict(setup_dict)
+    assert len(setup.attributes) == 2
+    assert len(setup.virtual_channels) == 1
     assert not setup.is_empty()
 
 

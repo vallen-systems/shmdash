@@ -1,84 +1,44 @@
 import json
+import logging
+from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any
-from unittest.mock import AsyncMock, Mock, create_autospec
+from datetime import datetime, timezone
+from unittest.mock import ANY, AsyncMock, Mock, create_autospec
 
 import pytest
 
-from shmdash import Client, HTTPResponse, HTTPSession, ResponseError
+import shmdash
+
+API_KEY = "00000000-0000-0000-0000-000000000000"
+
+URL = "https://shmdash.de"
+URL_SETUP = f"{URL}/upload/vjson/v1/setup"
+URL_DATA = f"{URL}/upload/vjson/v1/data"
+URL_COMMANDS = f"{URL}/upload/vjson/v1/commands"
+URL_DEV_DATA = f"{URL}/dev/timeseriesdata"
+URL_DEV_RECREATE = f"{URL}/dev/recreate"
 
 
 @dataclass
 class MockObjects:
-    url: str
-    api_key: str
-    http_session: HTTPSession
-    client: Client
+    http_session: shmdash.HTTPSession
+    client: shmdash.Client
 
 
 @pytest.fixture
 def mock() -> MockObjects:
-    url = "https://shmdash.de"
-    api_key = "00000000-0000-0000-0000-000000000000"
-    http_session_instance = create_autospec(spec=HTTPSession, instance=True)
+    http_session_instance = create_autospec(spec=shmdash.HTTPSession, instance=True)
     http_session = Mock()
     http_session.return_value = http_session_instance
     return MockObjects(
-        url=url,
-        api_key=api_key,
         http_session=http_session_instance,
-        client=Client(url=url, api_key=api_key, http_session=http_session),
+        client=shmdash.Client(url=URL, api_key=API_KEY, http_session=http_session),
     )
 
 
-SETUP_DICT = {
-    "attributes": {
-        "AbsDateTime": {
-            "descr": "Absolutetime in ISO8601, UTC Zone (max. µs)",
-            "type": "dateTime",
-            "format": "YYYY-MM-DDThh:mm:ss[.ssssss]Z",
-        },
-        "REFNO": {
-            "descr": "Increasing reference number",
-            "softLimits": [0, None],
-            "diagramScale": "lin",
-            "type": "int64",
-            "format": "%d",
-        },
-        "VOLTAGE": {
-            "unit": "mV",
-            "descr": "Control Voltage",
-            "softLimits": [0, 100],
-            "diagramScale": "lin",
-            "type": "float32",
-            "format": "%.2f",
-        },
-        "TEMP1": {
-            "unit": "°C",
-            "descr": "Outside temperature",
-            "softLimits": [-60, 100],
-            "diagramScale": "lin",
-            "type": "float32",
-            "format": "%.1f",
-        },
-    },
-    "virtual_channels": {
-        "0": {
-            "name": "Temperature sensor 1",
-            "attributes": ["AbsDateTime", "REFNO", "min(TEMP1)", "max(TEMP1)"],
-        },
-        "1": {
-            "name": "Control Signal",
-            "descr": "Control signal voltage",
-            "attributes": ["AbsDateTime", "REFNO", "VOLTAGE"],
-        },
-    },
-}
-
-
-def json_response(obj: Any, status: int = 200) -> HTTPResponse:
+def json_response(obj, status: int = 200) -> shmdash.HTTPResponse:
     encoding = "utf-8"
-    return HTTPResponse(
+    return shmdash.HTTPResponse(
         url="",
         method="",
         status=status,
@@ -88,16 +48,28 @@ def json_response(obj: Any, status: int = 200) -> HTTPResponse:
     )
 
 
-async def test_get_setup(mock):
-    mock.http_session.get = AsyncMock(return_value=json_response(SETUP_DICT, status=200))
-    setup = await mock.client.get_setup()
-    mock.http_session.get.assert_awaited_once_with(f"{mock.url}/upload/vjson/v1/setup")
+async def test_close(mock):
+    mock.http_session.close = AsyncMock()
+    await mock.client.close()
+    mock.http_session.close.assert_awaited_once()
 
-    assert len(setup.attributes) == 4
+
+async def test_context_manager(mock):
+    mock.http_session.close = AsyncMock()
+    async with mock.client:
+        ...
+    mock.http_session.close.assert_awaited_once()
+
+
+async def test_get_setup(mock):
+    mock.http_session.get = AsyncMock(return_value=json_response(SETUP_DICT))
+    setup = await mock.client.get_setup()
+    mock.http_session.get.assert_awaited_once_with(URL_SETUP)
+
+    assert len(setup.attributes) == 3
     assert setup.attributes[0].identifier == "AbsDateTime"
-    assert setup.attributes[1].identifier == "REFNO"
-    assert setup.attributes[2].identifier == "VOLTAGE"
-    assert setup.attributes[3].identifier == "TEMP1"
+    assert setup.attributes[1].identifier == "Pressure"
+    assert setup.attributes[2].identifier == "WindSpeed"
 
     assert len(setup.virtual_channels) == 2
     assert setup.virtual_channels[0].identifier == "0"
@@ -105,12 +77,251 @@ async def test_get_setup(mock):
 
 
 async def test_get_setup_empty(mock):
-    mock.http_session.get = AsyncMock(return_value=json_response({}, status=200))
+    mock.http_session.get = AsyncMock(return_value=json_response({}))
     setup = await mock.client.get_setup()
     assert setup.is_empty()
 
 
 async def test_get_setup_error(mock):
     mock.http_session.get = AsyncMock(return_value=json_response({}, status=400))
-    with pytest.raises(ResponseError):
+    with pytest.raises(shmdash.ResponseError):
         await mock.client.get_setup()
+
+
+SETUP_DICT = {
+    "attributes": {
+        "AbsDateTime": {
+            "descr": "Absolute time UTC",
+            "type": "dateTime",
+            "format": "YYYY-MM-DDThh:mm:ss.ssssssZ",
+        },
+        "Pressure": {
+            "descr": "Atmospheric pressure",
+            "unit": "hPa",
+            "type": "float32",
+            "format": "%.2f",
+            "softLimits": (900, 1100),
+        },
+        "WindSpeed": {
+            "descr": "Wind speed",
+            "unit": "m/s",
+            "type": "float32",
+            "format": "%.2f",
+            "softLimits": (0, None),
+        },
+    },
+    "virtual_channels": {
+        "0": {
+            "attributes": ["AbsDateTime", "Pressure"],
+        },
+        "1": {
+            "attributes": ["AbsDateTime", "Pressure", "WindSpeed"],
+        },
+    },
+}
+
+
+async def test_setup(mock):
+    mock.http_session.get = AsyncMock(return_value=json_response({}))
+    mock.http_session.post = AsyncMock(return_value=json_response({}))
+
+    setup = shmdash.Setup.from_dict(SETUP_DICT)
+    await mock.client.setup(setup.attributes, setup.virtual_channels)
+
+    mock.http_session.get.assert_awaited_once_with(URL_SETUP)
+    mock.http_session.post.assert_awaited_once_with(URL_SETUP, data=json.dumps(SETUP_DICT))
+
+
+async def test_setup_error(mock):
+    mock.http_session.get = AsyncMock(return_value=json_response({}))
+    mock.http_session.post = AsyncMock(return_value=json_response({}, status=400))
+    with pytest.raises(shmdash.ResponseError):
+        await mock.client.setup([], [])
+
+
+async def test_setup_existing(mock):
+    mock.http_session.get = AsyncMock(return_value=json_response(SETUP_DICT))
+
+    setup = shmdash.Setup.from_dict(SETUP_DICT)
+    await mock.client.setup(setup.attributes, setup.virtual_channels)
+
+    mock.http_session.post.assert_not_awaited()
+
+
+async def test_setup_partial_existing(mock):
+    setup_dict_existing = deepcopy(SETUP_DICT)
+    setup_dict_existing["attributes"].popitem()
+    setup_dict_existing["virtual_channels"].popitem()
+    mock.http_session.get = AsyncMock(return_value=json_response(setup_dict_existing))
+    mock.http_session.post = AsyncMock(return_value=json_response({}))
+
+    setup = shmdash.Setup.from_dict(SETUP_DICT)
+    await mock.client.setup(setup.attributes, setup.virtual_channels)
+
+    mock.http_session.post.assert_awaited_with(URL_COMMANDS, data=ANY)
+
+
+ATTRIBUTE = shmdash.Attribute(
+    identifier="Pressure",
+    desc="Atmospheric pressure",
+    unit="hPa",
+    type=shmdash.AttributeType.FLOAT32,
+)
+
+
+async def test_add_attribute(mock):
+    mock.http_session.post = AsyncMock(return_value=json_response({}))
+
+    await mock.client.add_attribute(ATTRIBUTE)
+    mock.http_session.post.assert_awaited_once_with(
+        URL_COMMANDS,
+        data=json.dumps(
+            {
+                "commands": [
+                    {
+                        "cmdName": "addAttribute",
+                        "attributeId": "Pressure",
+                        "descr": "Atmospheric pressure",
+                        "unit": "hPa",
+                        "type": "float32",
+                    }
+                ]
+            }
+        ),
+    )
+
+
+async def test_add_attribute_error(mock):
+    mock.http_session.post = AsyncMock(return_value=json_response({}, status=400))
+    with pytest.raises(shmdash.ResponseError):
+        await mock.client.add_attribute(ATTRIBUTE)
+
+
+VIRTUAL_CHANNEL = shmdash.VirtualChannel(
+    identifier="0",
+    name=None,
+    desc=None,
+    attributes=["AbsDateTime", "Pressure"],
+)
+
+
+async def test_add_virtual_channel(mock):
+    mock.http_session.post = AsyncMock(return_value=json_response({}))
+
+    await mock.client.add_virtual_channel(VIRTUAL_CHANNEL)
+    mock.http_session.post.assert_awaited_once_with(
+        URL_COMMANDS,
+        data=json.dumps(
+            {
+                "commands": [
+                    {
+                        "cmdName": "addVirtualChannel",
+                        "virtualChannelId": "0",
+                        "attributes": ["AbsDateTime", "Pressure"],
+                    }
+                ]
+            }
+        ),
+    )
+
+
+async def test_add_virtual_channel_error(mock):
+    mock.http_session.post = AsyncMock(return_value=json_response({}, status=400))
+    with pytest.raises(shmdash.ResponseError):
+        await mock.client.add_virtual_channel(VIRTUAL_CHANNEL)
+
+
+async def test_add_virtual_channel_attributes(mock):
+    mock.http_session.post = AsyncMock(return_value=json_response({}))
+
+    await mock.client.add_virtual_channel_attributes("0", ["WindSpeed"])
+    mock.http_session.post.assert_awaited_once_with(
+        URL_COMMANDS,
+        data=json.dumps(
+            {
+                "commands": [
+                    {
+                        "cmdName": "addVirtualChannelAttributes",
+                        "virtualChannelId": "0",
+                        "attributes": ["WindSpeed"],
+                    }
+                ]
+            }
+        ),
+    )
+
+
+async def test_add_virtual_channel_attributes_error(mock):
+    mock.http_session.post = AsyncMock(return_value=json_response({}, status=400))
+    with pytest.raises(shmdash.ResponseError):
+        await mock.client.add_virtual_channel_attributes("0", ["WindSpeed"])
+
+
+UPLOAD_DATA = shmdash.UploadData(
+    timestamp=datetime(
+        year=2024,
+        month=1,
+        day=1,
+        hour=11,
+        minute=11,
+        second=11,
+        microsecond=111111,
+        tzinfo=timezone.utc,
+    ),
+    data=[11.11],
+)
+
+
+async def test_upload(mock):
+    mock.http_session.post = AsyncMock(return_value=json_response({}))
+
+    await mock.client.upload_data("0", [UPLOAD_DATA])
+    mock.http_session.post.assert_called_once_with(
+        URL_DATA,
+        data=json.dumps(
+            {
+                "conflict": "IGNORE",
+                "data": [
+                    ["0", "2024-01-01T11:11:11.111111Z", 11.11],
+                ],
+            }
+        ),
+    )
+
+
+async def test_upload_payload_too_large(mock, caplog):
+    caplog.set_level(logging.ERROR)  # suppress warning logs
+    mock.http_session.post = AsyncMock(return_value=json_response({}, status=413))
+
+    with pytest.raises(shmdash.ResponseError):
+        await mock.client.upload_data("0", [UPLOAD_DATA for _ in range(16)])
+
+    assert mock.http_session.post.await_count > 1
+
+
+async def test_delete_data(mock, caplog):
+    caplog.set_level(logging.ERROR)  # suppress warning logs
+    mock.http_session.delete = AsyncMock(return_value=json_response({}))
+    await mock.client.delete_data()
+    mock.http_session.delete.assert_awaited_once_with(URL_DEV_DATA)
+
+
+async def test_delete_data_error(mock, caplog):
+    caplog.set_level(logging.ERROR)  # suppress warning logs
+    mock.http_session.delete = AsyncMock(return_value=json_response({}, status=400))
+    with pytest.raises(shmdash.ResponseError):
+        await mock.client.delete_data()
+
+
+async def test_recreate(mock, caplog):
+    caplog.set_level(logging.ERROR)  # suppress warning logs
+    mock.http_session.get = AsyncMock(return_value=json_response({}))
+    await mock.client.recreate()
+    mock.http_session.get.assert_awaited_once_with(URL_DEV_RECREATE)
+
+
+async def test_recreate_error(mock, caplog):
+    caplog.set_level(logging.ERROR)  # suppress warning logs
+    mock.http_session.get = AsyncMock(return_value=json_response({}, status=400))
+    with pytest.raises(shmdash.ResponseError):
+        await mock.client.recreate()
