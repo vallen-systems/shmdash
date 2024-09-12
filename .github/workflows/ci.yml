@@ -3,6 +3,8 @@ name: CI
 on:
   push:
   pull_request:
+  release:
+    types: [published]
 
 jobs:
   test:
@@ -17,7 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Install Hatch
+      - name: Install hatch
         run: pip install hatch
       - name: Run ruff
         run: hatch fmt
@@ -25,3 +27,26 @@ jobs:
         run: hatch run typing:check 
       - name: Run tests
         run: hatch test
+
+  publish:
+    needs: [test] # only run if previous jobs are successful
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install hatch
+        run: pip install hatch
+      - name: Build sdist and wheel
+        run: hatch build
+      - name: Publish package to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+      - name: Publish package to PyPI
+        if: github.event_name == 'release'
+        uses: pypa/gh-action-pypi-publish@release/v1
