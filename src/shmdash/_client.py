@@ -252,7 +252,7 @@ class Client:
         Data of other upload sources (different API keys) won't be affected.
         """
         logger.warning("Delete all data")
-        response = await self._session.delete(self._endpoint_url("dev/timeseriesdata"))
+        response = await self._session.delete(self._endpoint_url("/dev/timeseriesdata"))
         self._check_response(response)
 
     async def recreate(self):
@@ -262,7 +262,7 @@ class Client:
         Data and setups of other upload sources (different API keys) won't be affected.
         """
         logger.warning("Delete all data and setup information")
-        response = await self._session.get(self._endpoint_url("dev/recreate"))
+        response = await self._session.get(self._endpoint_url("/dev/recreate"))
         self._check_response(response)
 
     async def close(self):
