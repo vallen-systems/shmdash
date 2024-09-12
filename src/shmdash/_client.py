@@ -100,10 +100,18 @@ class Client:
             response = await self._session.post(self._url_setup, data=json.dumps(query))
             self._check_response(response)
         else:
+            existing_attribute_ids = {attr.identifier: attr for attr in setup.attributes}
+            existing_virtual_channel_ids = {vc.identifier: vc for vc in setup.virtual_channels}
             for attribute in attributes:
-                await self.add_attribute(attribute)
+                if attribute.identifier not in existing_attribute_ids:
+                    await self.add_attribute(attribute)
+                else:
+                    logger.debug("Attribute %s already exists", attribute.identifier)
             for virtual_channel in virtual_channels:
-                await self.add_virtual_channel(virtual_channel)
+                if virtual_channel.identifier not in existing_virtual_channel_ids:
+                    await self.add_virtual_channel(virtual_channel)
+                else:
+                    logger.debug("Virtual channel %s already exists", virtual_channel.identifier)
 
     async def add_attribute(self, attribute: Attribute):
         """
@@ -112,12 +120,6 @@ class Client:
         Args:
             attribute: Attribute definition
         """
-        setup = await self.get_setup()
-        existing = {attr.identifier: attr for attr in setup.attributes}
-        if attribute.identifier in existing:
-            logger.info("Attribute %s already exists", attribute.identifier)
-            return
-
         logger.info("Add attribute %s", attribute.identifier)
         query = {
             "commands": [
@@ -138,12 +140,6 @@ class Client:
         Args:
             virtual_channel: Virtual channel definition
         """
-        setup = await self.get_setup()
-        existing = {vc.identifier: vc for vc in setup.virtual_channels}
-        if str(virtual_channel.identifier) in existing:
-            logger.info("Virtual channel %s already exists", virtual_channel.identifier)
-            return
-
         logger.info("Add virtual channel %s", virtual_channel.identifier)
         query = {
             "commands": [
