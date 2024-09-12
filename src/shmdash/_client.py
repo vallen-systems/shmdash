@@ -4,7 +4,7 @@ import json
 import logging
 from datetime import timezone
 from http import HTTPStatus
-from typing import Sequence
+from typing import Any, Sequence
 from urllib.parse import urljoin
 
 from shmdash._datatypes import Attribute, Setup, UploadData, VirtualChannel
@@ -113,6 +113,11 @@ class Client:
                 else:
                     logger.debug("Virtual channel %s already exists", virtual_channel.identifier)
 
+    async def _post_commands(self, commands: Sequence[dict[str, Any]]):
+        query = {"commands": list(commands)}
+        response = await self._session.post(self._endpoint_url("commands"), data=json.dumps(query))
+        self._check_response(response)
+
     async def add_attribute(self, attribute: Attribute):
         """
         Add attribute / channel.
@@ -121,17 +126,14 @@ class Client:
             attribute: Attribute definition
         """
         logger.info("Add attribute %s", attribute.identifier)
-        query = {
-            "commands": [
-                {
-                    "cmdName": "addAttribute",
-                    "attributeId": str(attribute.identifier),
-                    **attribute.to_dict()[attribute.identifier],
-                },
-            ],
-        }
-        response = await self._session.post(self._endpoint_url("commands"), data=json.dumps(query))
-        self._check_response(response)
+        commands = [
+            {
+                "cmdName": "addAttribute",
+                "attributeId": str(attribute.identifier),
+                **attribute.to_dict()[attribute.identifier],
+            },
+        ]
+        await self._post_commands(commands)
 
     async def add_virtual_channel(self, virtual_channel: VirtualChannel):
         """
@@ -141,17 +143,14 @@ class Client:
             virtual_channel: Virtual channel definition
         """
         logger.info("Add virtual channel %s", virtual_channel.identifier)
-        query = {
-            "commands": [
-                {
-                    "cmdName": "addVirtualChannel",
-                    "virtualChannelId": str(virtual_channel.identifier),
-                    **virtual_channel.to_dict()[virtual_channel.identifier],
-                },
-            ],
-        }
-        response = await self._session.post(self._endpoint_url("commands"), data=json.dumps(query))
-        self._check_response(response)
+        commands = [
+            {
+                "cmdName": "addVirtualChannel",
+                "virtualChannelId": str(virtual_channel.identifier),
+                **virtual_channel.to_dict()[virtual_channel.identifier],
+            },
+        ]
+        await self._post_commands(commands)
 
     async def add_virtual_channel_attributes(
         self,
@@ -166,17 +165,14 @@ class Client:
             attribute_ids: Attribute identifiers
         """
         logger.info("Add attributes %s to virtual channel %s", attribute_ids, virtual_channel_id)
-        query = {
-            "commands": [
-                {
-                    "cmdName": "addVirtualChannelAttributes",
-                    "virtualChannelId": str(virtual_channel_id),
-                    "attributes": attribute_ids,
-                },
-            ],
-        }
-        response = await self._session.post(self._endpoint_url("commands"), data=json.dumps(query))
-        self._check_response(response)
+        commands = [
+            {
+                "cmdName": "addVirtualChannelAttributes",
+                "virtualChannelId": str(virtual_channel_id),
+                "attributes": attribute_ids,
+            },
+        ]
+        await self._post_commands(commands)
 
     async def _upload_data_chunk(self, virtual_channel_id: str, data: Sequence[UploadData]):
         def convert_datetime(timestamp):
