@@ -2,10 +2,12 @@
 
 from shmdash._client import Client
 from shmdash._datatypes import (
+    Annotation,
     Attribute,
     AttributeType,
     DiagramScale,
     Setup,
+    Severity,
     UploadData,
     VirtualChannel,
 )
