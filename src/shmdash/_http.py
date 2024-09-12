@@ -49,15 +49,10 @@ class HTTPSession(ABC):
         """
 
     async def __aenter__(self):
-        await self.open()
         return self
 
     async def __aexit__(self, exc_type, exc, traceback):
         await self.close()
-
-    @abstractmethod
-    async def open(self):
-        """Open HTTP session."""
 
     @abstractmethod
     async def close(self):
@@ -86,8 +81,6 @@ class HTTPSessionAiohttp(HTTPSession):
             headers=options.headers,
             timeout=aiohttp.ClientTimeout(total=options.timeout),
         )
-
-    async def open(self): ...
 
     async def close(self):
         await self._session.close()
