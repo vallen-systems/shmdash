@@ -4,7 +4,7 @@ import json
 import logging
 from datetime import timezone
 from http import HTTPStatus
-from typing import Any, Sequence
+from typing import Any, Iterable, Sequence
 from urllib.parse import urljoin
 
 from shmdash._datatypes import Attribute, Setup, UploadData, VirtualChannel
@@ -113,8 +113,8 @@ class Client:
                 else:
                     logger.debug("Virtual channel %s already exists", virtual_channel.identifier)
 
-    async def _post_commands(self, commands: Sequence[dict[str, Any]]):
-        query = {"commands": list(commands)}
+    async def _post_commands(self, commands: Iterable[dict[str, Any]]):
+        query = {"commands": tuple(commands)}
         response = await self._session.post(self._endpoint_url("commands"), data=json.dumps(query))
         self._check_response(response)
 
