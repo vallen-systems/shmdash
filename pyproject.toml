@@ -89,7 +89,7 @@ minversion = "6.0"
 addopts = "-ra -q" # test summary for (a)ll except passed
 testpaths = ["tests"]
 log_cli = true
-log_cli_level = "WARNING"
+log_cli_level = "ERROR"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "module"
 
