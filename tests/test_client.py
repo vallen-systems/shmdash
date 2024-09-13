@@ -14,6 +14,7 @@ URL = "https://shmdash.de"
 URL_SETUP = f"{URL}/upload/vjson/v1/setup"
 URL_DATA = f"{URL}/upload/vjson/v1/data"
 URL_COMMANDS = f"{URL}/upload/vjson/v1/commands"
+URL_ANNOTATION = f"{URL}/upload/vjson/v1/annotation"
 URL_DEV_DATA = f"{URL}/dev/timeseriesdata"
 URL_DEV_RECREATE = f"{URL}/dev/recreate"
 
@@ -271,7 +272,7 @@ UPLOAD_DATA = shmdash.UploadData(
 )
 
 
-async def test_upload(mock):
+async def test_upload_data(mock):
     mock.http_session.post = AsyncMock(return_value=json_response({}))
 
     await mock.client.upload_data("0", [UPLOAD_DATA])
@@ -288,7 +289,7 @@ async def test_upload(mock):
     )
 
 
-async def test_upload_payload_too_large(mock):
+async def test_upload_data_payload_too_large(mock):
     mock.http_session.post = AsyncMock(return_value=json_response({}, status=413))
 
     with pytest.raises(shmdash.ResponseError):
@@ -304,6 +305,20 @@ async def test_upload_payload_too_large(mock):
     assert upload_data_count(mock.http_session.post.await_args_list[2]) == 4
     assert upload_data_count(mock.http_session.post.await_args_list[3]) == 2
     assert upload_data_count(mock.http_session.post.await_args_list[4]) == 1
+
+
+async def test_upload_annotation(mock):
+    mock.http_session.post = AsyncMock(return_value=json_response({}))
+    annotation = shmdash.Annotation(
+        timestamp=datetime.now(tz=timezone.utc),
+        severity=shmdash.Severity.WARNING,
+        description="Annotation",
+    )
+    await mock.client.upload_annotation(annotation)
+    mock.http_session.post.assert_called_once_with(
+        URL_ANNOTATION,
+        data=json.dumps(annotation.to_dict()),
+    )
 
 
 async def test_delete_data(mock):

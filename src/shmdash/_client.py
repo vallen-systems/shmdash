@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import timezone
 from http import HTTPStatus
 from typing import Any, Iterable, Sequence
 from urllib.parse import urljoin
 
-from shmdash._datatypes import Attribute, Setup, UploadData, VirtualChannel
+from shmdash._datatypes import (
+    Annotation,
+    Attribute,
+    Setup,
+    UploadData,
+    VirtualChannel,
+    _format_datetime,
+)
 from shmdash._exceptions import ResponseError
 from shmdash._http import HTTPResponse, HTTPSession, HTTPSessionAiohttp, HTTPSessionOptions
 
@@ -185,14 +191,7 @@ class Client:
         logger.debug("Upload %d data sets to virtual channel %s", len(data), virtual_channel_id)
         query = {
             "conflict": "IGNORE",
-            "data": [
-                (
-                    virtual_channel_id,
-                    d.timestamp.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
-                    *d.data,
-                )
-                for d in data
-            ],
+            "data": [(virtual_channel_id, _format_datetime(d.timestamp), *d.data) for d in data],
         }
 
         try:
@@ -221,6 +220,19 @@ class Client:
                 await self.upload_data(virtual_channel_id, data[mid:])
             else:
                 raise
+
+    async def upload_annotation(self, annotation: Annotation):
+        """
+        Upload an annotation.
+
+        Args:
+            annotation: Annotation
+        """
+        query = annotation.to_dict()
+        response = await self._session.post(
+            self._endpoint_url("annotation"), data=json.dumps(query)
+        )
+        self._check_response(response)
 
     async def delete_data(self):
         """

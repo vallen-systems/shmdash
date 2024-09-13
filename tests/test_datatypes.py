@@ -1,4 +1,14 @@
-from shmdash import Attribute, AttributeType, DiagramScale, Setup, VirtualChannel
+from datetime import datetime, timezone
+
+from shmdash import (
+    Annotation,
+    Attribute,
+    AttributeType,
+    DiagramScale,
+    Setup,
+    Severity,
+    VirtualChannel,
+)
 
 
 def test_attribute():
@@ -102,3 +112,29 @@ def test_setup_empty():
     assert len(setup.attributes) == 0
     assert len(setup.virtual_channels) == 0
     assert setup.is_empty()
+
+
+def test_annotation():
+    annotation = Annotation(
+        timestamp=datetime(
+            year=2024,
+            month=1,
+            day=1,
+            hour=12,
+            minute=0,
+            second=0,
+            microsecond=100,
+            tzinfo=timezone.utc,
+        ),
+        severity=Severity.WARNING,
+        description="Annotation",
+        send_email=True,
+        confirmation_needed=True,
+    )
+    assert annotation.to_dict() == {
+        "date": "2024-01-01T12:00:00.000100Z",
+        "severity": "warning",
+        "description": "Annotation",
+        "sendEmail": True,
+        "confirmationNeeded": True,
+    }

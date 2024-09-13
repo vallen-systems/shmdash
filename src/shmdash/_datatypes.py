@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Sequence
 
 if TYPE_CHECKING:
     from datetime import datetime
+
+
+def _remove_none_values(dct: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in dct.items() if v is not None}
+
+
+def _format_datetime(timestamp: datetime) -> str:
+    return timestamp.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 class AttributeType(Enum):
@@ -27,10 +36,6 @@ class DiagramScale(Enum):
 
     LIN = "lin"
     LOG = "log"
-
-
-def _remove_none_values(dct: dict[str, Any]) -> dict[str, Any]:
-    return {k: v for k, v in dct.items() if v is not None}
 
 
 @dataclass
@@ -178,3 +183,34 @@ class UploadData:
     timestamp: datetime  #: Absolute datetime (unique!)
     #: List of values in order of the virtual channel attributes
     data: Sequence[int | float | str]
+
+
+class Severity(Enum):
+    """Severity."""
+
+    INFO = "info"
+    WARNING = "warning"
+    CRITICAL = "critical"
+
+
+@dataclass
+class Annotation:
+    """Annotation."""
+
+    timestamp: datetime  #: Absolute datetime
+    severity: Severity  #: Severity of the annotation
+    description: str  #: Description, should be a precise, meaningful text
+    send_email: bool = False  #: If true, the annotation will trigger an email-send request
+    confirmation_needed: bool = False  #: If true, the a user can confirm the annotation
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert into dict for JSON representation."""
+        return _remove_none_values(
+            {
+                "date": _format_datetime(self.timestamp),
+                "severity": self.severity.value,
+                "description": self.description,
+                "sendEmail": self.send_email,
+                "confirmationNeeded": self.confirmation_needed,
+            }
+        )
