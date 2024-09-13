@@ -57,7 +57,7 @@ class Attribute:
     """
 
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars)
-    desc: str | None  #: Channel description
+    description: str | None  #: Channel description
     unit: str | None  #: Measurement unit
     type: AttributeType  #: Type
     format: str | None = None  #: Format string, e.g. %s for str, %d for int, %.2f for float
@@ -70,7 +70,7 @@ class Attribute:
 
         return cls(
             identifier=identifier,
-            desc=fields.get("descr"),
+            description=fields.get("descr"),
             unit=fields.get("unit"),
             type=AttributeType(fields["type"]),
             format=fields.get("format"),
@@ -84,7 +84,7 @@ class Attribute:
         """Convert into dict for JSON representation."""
         return _remove_none_values(
             {
-                "descr": self.desc,
+                "descr": self.description,
                 "unit": self.unit,
                 "type": self.type.value,
                 "format": self.format,
@@ -110,7 +110,7 @@ class VirtualChannel:
 
     identifier: str  #: Unique identifier (alphanumeric and "_", max. 32 chars), VAE requires int
     name: str | None  #: Channel group name
-    desc: str | None  #: Channel group description
+    description: str | None  #: Channel group description
     #: List of assigned attribute / channel identifiers.
     #: Following channels have specific meaning: AbsDateTime, DSET, X, Y
     #: Following statistics can be applied:
@@ -128,7 +128,7 @@ class VirtualChannel:
         return cls(
             identifier=identifier,
             name=fields.get("name"),
-            desc=fields.get("descr"),
+            description=fields.get("descr"),
             attributes=fields["attributes"],
             properties=fields.get("prop"),
         )
@@ -138,7 +138,7 @@ class VirtualChannel:
         return _remove_none_values(
             {
                 "name": self.name,
-                "descr": self.desc,
+                "descr": self.description,
                 "attributes": self.attributes,
                 "prop": self.properties,
             }
