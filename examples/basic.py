@@ -12,7 +12,7 @@ API_KEY = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
 ATTRIBUTES = [
     Attribute(
         identifier="AbsDateTime",
-        desc="Absolute time UTC",
+        description="Absolute time UTC",
         unit=None,
         format="YYYY-MM-DDThh:mm:ss.ssssssZ",
         type=AttributeType.DATETIME,
@@ -20,21 +20,21 @@ ATTRIBUTES = [
     ),
     Attribute(
         identifier="Temperature",
-        desc="Temperature",
+        description="Temperature",
         unit="°C",
         format="%.2f",
         type=AttributeType.FLOAT32,
     ),
     Attribute(
         identifier="Pressure",
-        desc="Atmospheric pressure",
+        description="Atmospheric pressure",
         unit="hPa",
         format="%.0f",
         type=AttributeType.FLOAT32,
     ),
     Attribute(
         identifier="Humidity",
-        desc="Humidity",
+        description="Humidity",
         unit="%",
         format="%.0f",
         type=AttributeType.FLOAT32,
@@ -42,14 +42,14 @@ ATTRIBUTES = [
     ),
     Attribute(
         identifier="WindSpeed",
-        desc="Wind speed",
+        description="Wind speed",
         unit="km/h",
         format="%.2f",
         type=AttributeType.FLOAT32,
     ),
     Attribute(
         identifier="WindDegree",
-        desc="Wind degree",
+        description="Wind degree",
         unit="°",
         format="%.0f",
         type=AttributeType.UINT16,
@@ -57,14 +57,14 @@ ATTRIBUTES = [
     ),
     Attribute(
         identifier="Rain1h",
-        desc="Rain volume in last hour",
+        description="Rain volume in last hour",
         unit="mm",
         format="%.2f",
         type=AttributeType.FLOAT32,
     ),
     Attribute(
         identifier="WeatherDescription",
-        desc="Weather description",
+        description="Weather description",
         unit=None,
         format="%s",
         type=AttributeType.STRING,
@@ -75,7 +75,7 @@ VIRTUAL_CHANNELS = [
     VirtualChannel(
         identifier="100",
         name="Weather",
-        desc="Just random test data",
+        description="Just random test data",
         attributes=[attr.identifier for attr in ATTRIBUTES],
         properties=["STREAM", "PAR"],
     ),

@@ -163,7 +163,7 @@ async def test_setup_partial_existing(mock):
 
 ATTRIBUTE = shmdash.Attribute(
     identifier="Pressure",
-    desc="Atmospheric pressure",
+    description="Atmospheric pressure",
     unit="hPa",
     type=shmdash.AttributeType.FLOAT32,
 )
@@ -200,7 +200,7 @@ async def test_add_attribute_error(mock):
 VIRTUAL_CHANNEL = shmdash.VirtualChannel(
     identifier="0",
     name=None,
-    desc=None,
+    description=None,
     attributes=["AbsDateTime", "Pressure"],
 )
 

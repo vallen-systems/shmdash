@@ -23,7 +23,7 @@ def test_attribute():
     attribute = Attribute.from_dict("Identifier", attribute_dict)
 
     assert attribute.identifier == "Identifier"
-    assert attribute.desc == "Description"
+    assert attribute.description == "Description"
     assert attribute.unit == "Unit"
     assert attribute.type == AttributeType.FLOAT32
     assert attribute.format == "%.2f"
@@ -38,7 +38,7 @@ def test_attribute_minimal():
     attribute = Attribute.from_dict("Identifier", attribute_dict)
 
     assert attribute.identifier == "Identifier"
-    assert attribute.desc is None
+    assert attribute.description is None
     assert attribute.unit is None
     assert attribute.type == AttributeType.FLOAT32
     assert attribute.format is None
@@ -59,7 +59,7 @@ def test_virtual_channel():
 
     assert virtual_channel.identifier == "Identifier"
     assert virtual_channel.name == "Name"
-    assert virtual_channel.desc == "Description"
+    assert virtual_channel.description == "Description"
     assert virtual_channel.attributes == ["AbsDateTime", "DSET", "A"]
     assert virtual_channel.properties == ["STREAM", "HIT"]
 
@@ -72,7 +72,7 @@ def test_virtual_channel_minimal():
 
     assert virtual_channel.identifier == "Identifier"
     assert virtual_channel.name is None
-    assert virtual_channel.desc is None
+    assert virtual_channel.description is None
     assert virtual_channel.attributes == ["AbsDateTime", "DSET", "A"]
     assert virtual_channel.properties is None
 
