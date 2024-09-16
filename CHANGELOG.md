@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2024-09-16
+
 ### Added
 
 - `Setup` class
@@ -61,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 First public release
 
-[Unreleased]: https://github.com/vallen-systems/pySHMdash/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/vallen-systems/pySHMdash/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/vallen-systems/pySHMdash/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/vallen-systems/pySHMdash/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/vallen-systems/pySHMdash/releases/tag/0.4.0
