@@ -120,8 +120,11 @@ class Client:
         setup = await self.get_setup()
         if setup.is_empty():
             logger.info("Upload setup")
-            query = Setup(list(attributes), list(virtual_channels)).to_dict()
-            await self._request("POST", self._upload_url("setup"), json_body=query)
+            await self._request(
+                "POST",
+                self._upload_url("setup"),
+                json_body=Setup(list(attributes), list(virtual_channels)).to_dict(),
+            )
         else:
             existing_attribute_ids = {attr.identifier: attr for attr in setup.attributes}
             existing_virtual_channel_ids = {vc.identifier: vc for vc in setup.virtual_channels}
@@ -137,8 +140,11 @@ class Client:
                     logger.debug("Virtual channel %s already exists", virtual_channel.identifier)
 
     async def _post_commands(self, commands: Iterable[dict[str, Any]]):
-        query = {"commands": tuple(commands)}
-        await self._request("POST", self._upload_url("commands"), json_body=query)
+        await self._request(
+            "POST",
+            self._upload_url("commands"),
+            json_body={"commands": tuple(commands)},
+        )
 
     async def add_attribute(self, attribute: Attribute):
         """
@@ -205,13 +211,17 @@ class Client:
             data: List of data to upload
         """
         logger.debug("Upload %d data sets to virtual channel %s", len(data), virtual_channel_id)
-        query = {
-            "conflict": "IGNORE",
-            "data": [(virtual_channel_id, _format_datetime(d.timestamp), *d.data) for d in data],
-        }
-
         try:
-            response = await self._request("POST", self._upload_url("data"), json_body=query)
+            response = await self._request(
+                "POST",
+                self._upload_url("data"),
+                json_body={
+                    "conflict": "IGNORE",
+                    "data": [
+                        (virtual_channel_id, _format_datetime(d.timestamp), *d.data) for d in data
+                    ],
+                },
+            )
             # expected reponse body:
             # {
             #     "0": { "success": 2 },
@@ -243,8 +253,7 @@ class Client:
         Args:
             annotation: Annotation
         """
-        query = annotation.to_dict()
-        await self._request("POST", self._upload_url("annotation"), json_body=query)
+        await self._request("POST", self._upload_url("annotation"), json_body=annotation.to_dict())
 
     async def delete_data(self):
         """
