@@ -1,4 +1,7 @@
 [![CI](https://github.com/vallen-systems/shmdash/workflows/CI/badge.svg)](https://github.com/vallen-systems/shmdash/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI](https://img.shields.io/pypi/v/shmdash)](https://pypi.org/project/shmdash)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/shmdash)](https://pypi.org/project/shmdash)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
 
 # SHMdash
@@ -14,10 +17,10 @@ Further descriptions of the client functions can be found in the docstrings.
 
 ## Installation
 
-Install the latest version from Git:
+Install the latest version from [PyPI](https://pypi.org/project/shmdash):
 
 ```sh
-$ pip install 'shmdash @ git+https://github.com/vallen-systems/shmdash'
+$ pip install shmdash
 ```
 
 ## Development setup
