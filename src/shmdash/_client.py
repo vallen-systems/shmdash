@@ -28,7 +28,6 @@ class Client:
         url: str,
         api_key: str,
         *,
-        verify_ssl: bool = True,
         http_session: HTTPSession | None = None,
     ):
         """
@@ -37,13 +36,11 @@ class Client:
         Args:
             url: Base URL to dashboard server, e.g. https://shmdash.de
             api_key: API key
-            verify_ssl: Check SSL certifications
             http_session: HTTP session
         """
         logger.info("Initialize SHM Dash client: %s", url)
         self._url = url
         self._api_key = api_key
-        self._verify_ssl = verify_ssl
         self._session = http_session if http_session else HTTPSessionDefault()
 
     async def __aenter__(self):
@@ -97,7 +94,6 @@ class Client:
                     "Content-Type": "application/json",
                     "UPLOAD-API-KEY": self._api_key,
                 },
-                verify_ssl=self._verify_ssl,
             )
         )
         self._check_response(response)

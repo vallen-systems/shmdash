@@ -40,7 +40,6 @@ class HTTPRequest:
     content: str | None = None  #: Binary content to include in the body of the request
     headers: dict[str, str] | None = None  #: HTTP headers to include in the request
     timeout: float | None = None  #: Timeout in seconds for sending requests
-    verify_ssl: bool = True  #: Perform SSL certificate validation for HTTPS requests
 
 
 class HTTPSession(ABC):
