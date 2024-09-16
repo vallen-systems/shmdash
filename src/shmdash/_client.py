@@ -29,7 +29,7 @@ class Client:
         api_key: str,
         *,
         verify_ssl: bool = False,
-        http_session: HTTPSession | None,
+        http_session: HTTPSession | None = None,
     ):
         """
         Initialize SHM Dash client.
