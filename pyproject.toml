@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "shmdash"
 version = "0.6.0"
-description = "Vallen Systeme Dashboard (SHM Dash) upload client"
+description = "Upload client for Vallen SHM Dashboard"
 authors = [
     { name = "Lukas Berbuer (Vallen Systeme GmbH)", email = "lukas.berbuer@vallen.de" },
 ]
