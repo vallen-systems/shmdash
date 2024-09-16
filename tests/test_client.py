@@ -302,7 +302,7 @@ UPLOAD_DATA = shmdash.Data(
         microsecond=111111,
         tzinfo=timezone.utc,
     ),
-    data=[11.11],
+    values=[11.11],
 )
 
 

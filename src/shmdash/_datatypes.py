@@ -181,7 +181,7 @@ class Data:
     """Data record of a virtual channel."""
 
     timestamp: datetime  #: Absolute datetime (unique!)
-    data: Sequence[int | float | str]  #: List of values in order of the virtual channel attributes
+    values: Sequence[int | float | str]  #: Values in order of the virtual channel attributes
 
 
 class Severity(Enum):

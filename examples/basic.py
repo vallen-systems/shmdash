@@ -102,7 +102,7 @@ async def main():
                 data=[
                     Data(
                         timestamp=datetime.now(tz=timezone.utc),
-                        data=[
+                        values=[
                             random.gauss(20, 1),  # temperature
                             random.gauss(1013.25, 1),  # pressure
                             random.gauss(0.5, 0.01),  # humidity

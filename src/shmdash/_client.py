@@ -214,7 +214,12 @@ class Client:
                 json_body={
                     "conflict": "IGNORE",
                     "data": [
-                        (virtual_channel_id, _format_datetime(d.timestamp), *d.data) for d in data
+                        (
+                            virtual_channel_id,
+                            _format_datetime(record.timestamp),
+                            *record.values,  # noqa: PD011
+                        )
+                        for record in data
                     ],
                 },
             )
