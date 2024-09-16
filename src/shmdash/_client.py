@@ -92,7 +92,7 @@ class Client:
             HTTPRequest(
                 method,
                 url,
-                body=json.dumps(json_body) if json_body else None,
+                content=json.dumps(json_body) if json_body else None,
                 headers={
                     "Content-Type": "application/json",
                     "UPLOAD-API-KEY": self._api_key,
@@ -222,7 +222,7 @@ class Client:
                     ],
                 },
             )
-            # expected reponse body:
+            # expected reponse content:
             # {
             #     "0": { "success": 2 },
             #     "1": { "error": "Key (abs_date_time)=(2018-09-27 15:51:14) already exists." }

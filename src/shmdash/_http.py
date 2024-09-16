@@ -37,7 +37,7 @@ class HTTPRequest:
     method: Literal["GET", "OPTIONS", "HEAD", "POST", "PUT", "PATCH", "DELETE"]  #: HTTP method
     url: str  #: Request URL
     params: dict[str, Any] | None = None  #: Query parameters to include in the URL
-    body: str | None = None  #: Binary content to include in the body of the request
+    content: str | None = None  #: Binary content to include in the body of the request
     headers: dict[str, str] | None = None  #: HTTP headers to include in the request
     timeout: float | None = None  #: Timeout in seconds for sending requests
     verify_ssl: bool = True  #: Perform SSL certificate validation for HTTPS requests
@@ -81,7 +81,7 @@ class HTTPSessionAiohttp(HTTPSession):
                 method=request.method,
                 url=request.url,
                 params=request.params,
-                content=request.body,
+                content=request.content,
                 headers=request.headers,
                 timeout=request.timeout,
             )

@@ -27,8 +27,8 @@ async def test_http_headers():
                 headers={"custom": "123"},
             )
         )
-        body = response.json()
-        assert body["headers"]["custom"] == "123"
+        content = response.json()
+        assert content["headers"]["custom"] == "123"
 
 
 async def test_http_status():
@@ -48,8 +48,8 @@ async def test_http_get():
         assert response.status == 200
         assert response.content
 
-        body = response.json()
-        assert body["args"]["param"] == "test"
+        content = response.json()
+        assert content["args"]["param"] == "test"
 
 
 async def test_http_post_form():
@@ -58,7 +58,7 @@ async def test_http_post_form():
             HTTPRequest(
                 "POST",
                 "https://postman-echo.com/post",
-                body=urlencode({"key": "value"}),
+                content=urlencode({"key": "value"}),
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
         )
@@ -68,8 +68,8 @@ async def test_http_post_form():
         assert response.status == 200
         assert response.content
 
-        body = response.json()
-        assert body["form"]["key"] == "value"
+        content = response.json()
+        assert content["form"]["key"] == "value"
 
 
 async def test_http_post_json():
@@ -78,13 +78,13 @@ async def test_http_post_json():
             HTTPRequest(
                 "POST",
                 "https://postman-echo.com/post",
-                body=json.dumps({"key": "value"}),
+                content=json.dumps({"key": "value"}),
                 headers={"Content-Type": "application/json"},
             )
         )
 
-        body = response.json()
-        assert body["json"]["key"] == "value"
+        content = response.json()
+        assert content["json"]["key"] == "value"
 
 
 async def test_http_delete():
