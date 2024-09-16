@@ -59,9 +59,13 @@ class Client:
     async def __aexit__(self, exc_type, exc, traceback):
         await self.close()
 
-    def _endpoint_url(self, endpoint: str):
+    def _upload_url(self, endpoint: str):
         base_upload_url = urljoin(self._url, "/upload/vjson/v1/")
         return urljoin(base_upload_url, endpoint)
+
+    def _dev_url(self, endpoint: str):
+        base_dev_url = urljoin(self._url, "/dev/")
+        return urljoin(base_dev_url, endpoint)
 
     @staticmethod
     def _check_response(response: HTTPResponse):
@@ -85,7 +89,7 @@ class Client:
             )
 
     async def get_setup(self) -> Setup:
-        response = await self._session.get(self._endpoint_url("setup"))
+        response = await self._session.get(self._upload_url("setup"))
         self._check_response(response)
         return Setup.from_dict(response.json())
 
@@ -103,7 +107,7 @@ class Client:
         if setup.is_empty():
             logger.info("Upload setup")
             query = Setup(list(attributes), list(virtual_channels)).to_dict()
-            response = await self._session.post(self._endpoint_url("setup"), data=json.dumps(query))
+            response = await self._session.post(self._upload_url("setup"), data=json.dumps(query))
             self._check_response(response)
         else:
             existing_attribute_ids = {attr.identifier: attr for attr in setup.attributes}
@@ -121,7 +125,7 @@ class Client:
 
     async def _post_commands(self, commands: Iterable[dict[str, Any]]):
         query = {"commands": tuple(commands)}
-        response = await self._session.post(self._endpoint_url("commands"), data=json.dumps(query))
+        response = await self._session.post(self._upload_url("commands"), data=json.dumps(query))
         self._check_response(response)
 
     async def add_attribute(self, attribute: Attribute):
@@ -195,7 +199,7 @@ class Client:
         }
 
         try:
-            response = await self._session.post(self._endpoint_url("data"), data=json.dumps(query))
+            response = await self._session.post(self._upload_url("data"), data=json.dumps(query))
             self._check_response(response)
             # expected reponse:
             # {
@@ -229,9 +233,7 @@ class Client:
             annotation: Annotation
         """
         query = annotation.to_dict()
-        response = await self._session.post(
-            self._endpoint_url("annotation"), data=json.dumps(query)
-        )
+        response = await self._session.post(self._upload_url("annotation"), data=json.dumps(query))
         self._check_response(response)
 
     async def delete_data(self):
@@ -241,7 +243,7 @@ class Client:
         Data of other upload sources (different API keys) won't be affected.
         """
         logger.warning("Delete all data")
-        response = await self._session.delete(self._endpoint_url("/dev/timeseriesdata"))
+        response = await self._session.delete(self._dev_url("timeseriesdata"))
         self._check_response(response)
 
     async def recreate(self):
@@ -251,7 +253,7 @@ class Client:
         Data and setups of other upload sources (different API keys) won't be affected.
         """
         logger.warning("Delete all data and setup information")
-        response = await self._session.get(self._endpoint_url("/dev/recreate"))
+        response = await self._session.get(self._dev_url("recreate"))
         self._check_response(response)
 
     async def close(self):
