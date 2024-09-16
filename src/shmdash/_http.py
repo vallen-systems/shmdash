@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Literal
 
-import aiohttp
+import httpx
 
 from shmdash._exceptions import RequestError
 
@@ -70,10 +70,10 @@ class HTTPSession(ABC):
 
 class HTTPSessionAiohttp(HTTPSession):
     def __init__(self):
-        self._session = aiohttp.ClientSession()
+        self._session = httpx.AsyncClient()
 
     async def close(self):
-        await self._session.close()
+        await self._session.aclose()
 
     async def request(self, request: HTTPRequest) -> HTTPResponse:
         try:
@@ -81,18 +81,17 @@ class HTTPSessionAiohttp(HTTPSession):
                 method=request.method,
                 url=request.url,
                 params=request.params,
-                data=request.body,
+                content=request.body,
                 headers=request.headers,
-                timeout=aiohttp.ClientTimeout(total=request.timeout),
-                ssl=request.verify_ssl,
+                timeout=request.timeout,
             )
             return HTTPResponse(
                 url=str(response.url),
-                method=response.method,
-                status=response.status,
+                method=request.method,
+                status=response.status_code,
                 headers=dict(response.headers.items()),
-                content=await response.read(),
-                encoding=response.get_encoding(),
+                content=response.content,
+                encoding=response.encoding,
             )
-        except aiohttp.ClientError as e:
+        except httpx.HTTPError as e:
             raise RequestError(str(e)) from e

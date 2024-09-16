@@ -15,7 +15,7 @@ async def test_http_connection_failure():
 
 async def test_http_timeout():
     async with HTTPSessionAiohttp() as session:
-        with pytest.raises(asyncio.TimeoutError):
+        with pytest.raises(RequestError):
             await session.request(HTTPRequest("GET", "https://postman-echo.com/delay/2", timeout=1))
 
 
