@@ -9,8 +9,8 @@ from urllib.parse import urljoin
 from shmdash._datatypes import (
     Annotation,
     Attribute,
+    Data,
     Setup,
-    UploadData,
     VirtualChannel,
     _format_datetime,
 )
@@ -198,7 +198,7 @@ class Client:
         ]
         await self._post_commands(commands)
 
-    async def upload_data(self, virtual_channel_id: str, data: Sequence[UploadData]):
+    async def upload_data(self, virtual_channel_id: str, data: Sequence[Data]):
         """
         Upload data to virtual channel.
 
@@ -214,7 +214,12 @@ class Client:
                 json_body={
                     "conflict": "IGNORE",
                     "data": [
-                        (virtual_channel_id, _format_datetime(d.timestamp), *d.data) for d in data
+                        (
+                            virtual_channel_id,
+                            _format_datetime(record.timestamp),
+                            *record.values,  # noqa: PD011
+                        )
+                        for record in data
                     ],
                 },
             )

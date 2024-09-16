@@ -4,7 +4,7 @@ import logging
 import random
 from datetime import datetime, timezone
 
-from shmdash import Attribute, AttributeType, Client, UploadData, VirtualChannel
+from shmdash import Attribute, AttributeType, Client, Data, VirtualChannel
 
 URL = "https://dev.shmdash.de"
 API_KEY = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
@@ -100,9 +100,9 @@ async def main():
             await client.upload_data(
                 virtual_channel_id="100",
                 data=[
-                    UploadData(
+                    Data(
                         timestamp=datetime.now(tz=timezone.utc),
-                        data=[
+                        values=[
                             random.gauss(20, 1),  # temperature
                             random.gauss(1013.25, 1),  # pressure
                             random.gauss(0.5, 0.01),  # humidity

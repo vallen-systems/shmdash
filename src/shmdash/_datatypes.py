@@ -177,12 +177,11 @@ class Setup:
 
 
 @dataclass
-class UploadData:
-    """Upload data."""
+class Data:
+    """Data record of a virtual channel."""
 
     timestamp: datetime  #: Absolute datetime (unique!)
-    #: List of values in order of the virtual channel attributes
-    data: Sequence[int | float | str]
+    values: Sequence[int | float | str]  #: Values in order of the virtual channel attributes
 
 
 class Severity(Enum):
