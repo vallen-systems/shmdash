@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from http import HTTPStatus
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Literal, Sequence
 from urllib.parse import urljoin
 
 from shmdash._datatypes import (
@@ -15,7 +15,7 @@ from shmdash._datatypes import (
     _format_datetime,
 )
 from shmdash._exceptions import ResponseError
-from shmdash._http import HTTPResponse, HTTPSession, HTTPSessionAiohttp, HTTPSessionOptions
+from shmdash._http import HTTPRequest, HTTPResponse, HTTPSession, HTTPSessionAiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class Client:
         api_key: str,
         *,
         verify_ssl: bool = False,
-        http_session: type[HTTPSession] = HTTPSessionAiohttp,
+        http_session: HTTPSession | None,
     ):
         """
         Initialize SHM Dash client.
@@ -38,20 +38,13 @@ class Client:
             url: Base URL to dashboard server, e.g. https://shmdash.de
             api_key: API key
             verify_ssl: Check SSL certifications
+            http_session: HTTP session
         """
         logger.info("Initialize SHM Dash client: %s", url)
         self._url = url
-
-        logger.debug("Create SHM Dash HTTP client session")
-        self._session = http_session(
-            options=HTTPSessionOptions(
-                headers={
-                    "Content-Type": "application/json",
-                    "UPLOAD-API-KEY": api_key,
-                },
-                verify=verify_ssl,
-            )
-        )
+        self._api_key = api_key
+        self._verify_ssl = verify_ssl
+        self._session = http_session if http_session else HTTPSessionAiohttp()
 
     async def __aenter__(self):
         return self
@@ -88,9 +81,30 @@ class Client:
                 message=get_message(),
             )
 
-    async def get_setup(self) -> Setup:
-        response = await self._session.get(self._upload_url("setup"))
+    async def _request(
+        self,
+        method: Literal["GET", "POST", "DELETE"],
+        url: str,
+        *,
+        json_body: dict[str, Any] | None = None,
+    ) -> HTTPResponse:
+        response = await self._session.request(
+            HTTPRequest(
+                method,
+                url,
+                body=json.dumps(json_body) if json_body else None,
+                headers={
+                    "Content-Type": "application/json",
+                    "UPLOAD-API-KEY": self._api_key,
+                },
+                verify_ssl=self._verify_ssl,
+            )
+        )
         self._check_response(response)
+        return response
+
+    async def get_setup(self) -> Setup:
+        response = await self._request("GET", self._upload_url("setup"))
         return Setup.from_dict(response.json())
 
     async def setup(
@@ -107,8 +121,7 @@ class Client:
         if setup.is_empty():
             logger.info("Upload setup")
             query = Setup(list(attributes), list(virtual_channels)).to_dict()
-            response = await self._session.post(self._upload_url("setup"), data=json.dumps(query))
-            self._check_response(response)
+            await self._request("POST", self._upload_url("setup"), json_body=query)
         else:
             existing_attribute_ids = {attr.identifier: attr for attr in setup.attributes}
             existing_virtual_channel_ids = {vc.identifier: vc for vc in setup.virtual_channels}
@@ -125,8 +138,7 @@ class Client:
 
     async def _post_commands(self, commands: Iterable[dict[str, Any]]):
         query = {"commands": tuple(commands)}
-        response = await self._session.post(self._upload_url("commands"), data=json.dumps(query))
-        self._check_response(response)
+        await self._request("POST", self._upload_url("commands"), json_body=query)
 
     async def add_attribute(self, attribute: Attribute):
         """
@@ -199,9 +211,8 @@ class Client:
         }
 
         try:
-            response = await self._session.post(self._upload_url("data"), data=json.dumps(query))
-            self._check_response(response)
-            # expected reponse:
+            response = await self._request("POST", self._upload_url("data"), json_body=query)
+            # expected reponse body:
             # {
             #     "0": { "success": 2 },
             #     "1": { "error": "Key (abs_date_time)=(2018-09-27 15:51:14) already exists." }
@@ -233,8 +244,7 @@ class Client:
             annotation: Annotation
         """
         query = annotation.to_dict()
-        response = await self._session.post(self._upload_url("annotation"), data=json.dumps(query))
-        self._check_response(response)
+        await self._request("POST", self._upload_url("annotation"), json_body=query)
 
     async def delete_data(self):
         """
@@ -243,8 +253,7 @@ class Client:
         Data of other upload sources (different API keys) won't be affected.
         """
         logger.warning("Delete all data")
-        response = await self._session.delete(self._dev_url("timeseriesdata"))
-        self._check_response(response)
+        await self._request("DELETE", self._dev_url("timeseriesdata"))
 
     async def recreate(self):
         """
@@ -253,8 +262,7 @@ class Client:
         Data and setups of other upload sources (different API keys) won't be affected.
         """
         logger.warning("Delete all data and setup information")
-        response = await self._session.get(self._dev_url("recreate"))
-        self._check_response(response)
+        await self._request("GET", self._dev_url("recreate"))
 
     async def close(self):
         """Close session."""

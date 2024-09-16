@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import json
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import aiohttp
 
@@ -32,21 +31,24 @@ class HTTPResponse:
 
 
 @dataclass
-class HTTPSessionOptions:
-    headers: dict[str, str] | None = None  #: HTTP headers to include when sending requests
-    timeout: int | None = None  #: Timeout for sending requests
-    verify: bool = True  #: Perform SSL certificate validation for HTTPS requests
+class HTTPRequest:
+    """HTTP request."""
+
+    method: Literal["GET", "OPTIONS", "HEAD", "POST", "PUT", "PATCH", "DELETE"]  #: HTTP method
+    url: str  #: Request URL
+    params: dict[str, Any] | None = None  #: Query parameters to include in the URL
+    body: str | None = None  #: Binary content to include in the body of the request
+    headers: dict[str, str] | None = None  #: HTTP headers to include in the request
+    timeout: float | None = None  #: Timeout in seconds for sending requests
+    verify_ssl: bool = True  #: Perform SSL certificate validation for HTTPS requests
 
 
 class HTTPSession(ABC):
-    @abstractmethod
-    def __init__(self, *, options: HTTPSessionOptions):
-        """
-        Initialize HTTP session.
+    """HTTP session interface to wrap HTTP libraries."""
 
-        Params:
-            options: Session options
-        """
+    @abstractmethod
+    def __init__(self):
+        """Initialize HTTP session."""
 
     async def __aenter__(self):
         return self
@@ -59,62 +61,38 @@ class HTTPSession(ABC):
         """Close HTTP session."""
 
     @abstractmethod
-    async def get(self, url: str, *, params: dict[str, Any] | None = None) -> HTTPResponse:
-        """Send a GET request."""
-
-    @abstractmethod
-    async def post(self, url: str, *, data: Any = None) -> HTTPResponse:
-        """Send a POST request."""
-
-    @abstractmethod
-    async def delete(self, url: str) -> HTTPResponse:
-        """Send a DELETE request."""
+    async def request(self, request: HTTPRequest) -> HTTPResponse:
+        """Send an HTTP request."""
 
 
 # ------------------------------------ aiohttp implementation ------------------------------------ #
 
 
 class HTTPSessionAiohttp(HTTPSession):
-    def __init__(self, *, options: HTTPSessionOptions):
-        self._session = aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(verify_ssl=options.verify),
-            headers=options.headers,
-            timeout=aiohttp.ClientTimeout(total=options.timeout),
-        )
+    def __init__(self):
+        self._session = aiohttp.ClientSession()
 
     async def close(self):
         await self._session.close()
 
-    @staticmethod
-    @contextmanager
-    def _convert_exceptions():
+    async def request(self, request: HTTPRequest) -> HTTPResponse:
         try:
-            yield
+            response = await self._session.request(
+                method=request.method,
+                url=request.url,
+                params=request.params,
+                data=request.body,
+                headers=request.headers,
+                timeout=aiohttp.ClientTimeout(total=request.timeout),
+                ssl=request.verify_ssl,
+            )
+            return HTTPResponse(
+                url=str(response.url),
+                method=response.method,
+                status=response.status,
+                headers=dict(response.headers.items()),
+                content=await response.read(),
+                encoding=response.get_encoding(),
+            )
         except aiohttp.ClientError as e:
             raise RequestError(str(e)) from e
-
-    @staticmethod
-    async def _convert_response(response: aiohttp.ClientResponse) -> HTTPResponse:
-        return HTTPResponse(
-            url=str(response.url),
-            method=response.method,
-            status=response.status,
-            headers=dict(response.headers.items()),
-            content=await response.read(),
-            encoding=response.get_encoding(),
-        )
-
-    async def get(self, url: str, *, params: dict[str, Any] | None = None) -> HTTPResponse:
-        with self._convert_exceptions():
-            async with self._session.get(url, params=params) as response:
-                return await self._convert_response(response)
-
-    async def post(self, url: str, *, data: Any = None) -> HTTPResponse:
-        with self._convert_exceptions():
-            async with self._session.post(url, data=data) as response:
-                return await self._convert_response(response)
-
-    async def delete(self, url: str) -> HTTPResponse:
-        with self._convert_exceptions():
-            async with self._session.delete(url) as response:
-                return await self._convert_response(response)

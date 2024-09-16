@@ -1,39 +1,48 @@
 import asyncio
 import json
+from urllib.parse import urlencode
 
 import pytest
 
-from shmdash import HTTPSessionAiohttp, HTTPSessionOptions, RequestError
+from shmdash import HTTPRequest, HTTPSessionAiohttp, RequestError
 
 
 async def test_http_connection_failure():
-    async with HTTPSessionAiohttp(options=HTTPSessionOptions()) as session:
+    async with HTTPSessionAiohttp() as session:
         with pytest.raises(RequestError):
-            await session.get("https://example.invalid")
+            await session.request(HTTPRequest("GET", "https://example.invalid"))
 
 
 async def test_http_timeout():
-    async with HTTPSessionAiohttp(options=HTTPSessionOptions(timeout=1)) as session:
+    async with HTTPSessionAiohttp() as session:
         with pytest.raises(asyncio.TimeoutError):
-            await session.get("https://postman-echo.com/delay/2")
+            await session.request(HTTPRequest("GET", "https://postman-echo.com/delay/2", timeout=1))
 
 
 async def test_http_headers():
-    async with HTTPSessionAiohttp(options=HTTPSessionOptions(headers={"custom": "123"})) as session:
-        response = await session.get("https://postman-echo.com/headers")
+    async with HTTPSessionAiohttp() as session:
+        response = await session.request(
+            HTTPRequest(
+                "GET",
+                "https://postman-echo.com/headers",
+                headers={"custom": "123"},
+            )
+        )
         body = response.json()
         assert body["headers"]["custom"] == "123"
 
 
 async def test_http_status():
-    async with HTTPSessionAiohttp(options=HTTPSessionOptions()) as session:
-        response = await session.get("https://postman-echo.com/status/404")
+    async with HTTPSessionAiohttp() as session:
+        response = await session.request(HTTPRequest("GET", "https://postman-echo.com/status/404"))
         assert response.status == 404
 
 
 async def test_http_get():
-    async with HTTPSessionAiohttp(options=HTTPSessionOptions()) as session:
-        response = await session.get("https://postman-echo.com/get", params={"param": "test"})
+    async with HTTPSessionAiohttp() as session:
+        response = await session.request(
+            HTTPRequest("GET", "https://postman-echo.com/get", params={"param": "test"})
+        )
 
         assert response.url == "https://postman-echo.com/get?param=test"
         assert response.method == "GET"
@@ -44,9 +53,16 @@ async def test_http_get():
         assert body["args"]["param"] == "test"
 
 
-async def test_http_post():
-    async with HTTPSessionAiohttp(options=HTTPSessionOptions()) as session:
-        response = await session.post("https://postman-echo.com/post", data={"key": "value"})
+async def test_http_post_form():
+    async with HTTPSessionAiohttp() as session:
+        response = await session.request(
+            HTTPRequest(
+                "POST",
+                "https://postman-echo.com/post",
+                body=urlencode({"key": "value"}),
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+        )
 
         assert response.url == "https://postman-echo.com/post"
         assert response.method == "POST"
@@ -58,11 +74,14 @@ async def test_http_post():
 
 
 async def test_http_post_json():
-    async with HTTPSessionAiohttp(
-        options=HTTPSessionOptions(headers={"Content-Type": "application/json"})
-    ) as session:
-        response = await session.post(
-            "https://postman-echo.com/post", data=json.dumps({"key": "value"})
+    async with HTTPSessionAiohttp() as session:
+        response = await session.request(
+            HTTPRequest(
+                "POST",
+                "https://postman-echo.com/post",
+                body=json.dumps({"key": "value"}),
+                headers={"Content-Type": "application/json"},
+            )
         )
 
         body = response.json()
@@ -70,8 +89,8 @@ async def test_http_post_json():
 
 
 async def test_http_delete():
-    async with HTTPSessionAiohttp(options=HTTPSessionOptions()) as session:
-        response = await session.delete("https://postman-echo.com/delete")
+    async with HTTPSessionAiohttp() as session:
+        response = await session.request(HTTPRequest("DELETE", "https://postman-echo.com/delete"))
 
         assert response.url == "https://postman-echo.com/delete"
         assert response.method == "DELETE"
