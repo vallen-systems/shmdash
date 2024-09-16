@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Setup` class
+- `HTTPSession` interface to wrap and inject http libraries (#3)
+- `Client.upload_annotation` (#11)
+
+### Changed
+
+- `Attribute.description`, `Attribute.format`, `Attribute.soft_limits` is optional
+- `VirtualChannel.name` is optional
+- Simplify exception types (#2)
+- Remove setup-related functions from `Client` (#4).
+  The following `Client` methods always fetch the setup from the server. Instead, the setup should only be fetched once and queries done on this object.
+
+  - Remove `Client.has_setup()`, use `Client.get_setup()` and `Setup.is_empty()` instead
+  - Remove `Client.get_attributes()` and `Client.get_attribute(id)`, use `Client.get_setup` and `Setup.attributes` instead
+  - Remove `Client.get_virtual_channels()` and `Client.get_virtual_channel(id)`, use `Client.get_setup` and `Setup.virtual_channels` instead
+- Remove existence check in Client.add_attribute and Client.add_virtual_channel (#6)
+- Rename `Attribute.desc` -> `Attribute.description`, `VirtualChannel.desc` -> `VirtualChannel.description` (#12)
+- Enable SSL verification by default, remove `verify_ssl` flag (#14, #16)
+- Migrate to HTTPX (#15)
+- Rename `UploadData` -> `Data`, `Data.data` -> `Data.values` (#17)
+
+### Fixed
+
+- Remove `None` values from JSON objects
+- Check response in `Client.get_setup` (#5)
+- Halve upload batch size while payload too large (#8)
+
 ## [0.5.0] - 2024-08-26
 
 ### Added
