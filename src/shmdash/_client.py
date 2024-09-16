@@ -15,7 +15,7 @@ from shmdash._datatypes import (
     _format_datetime,
 )
 from shmdash._exceptions import ResponseError
-from shmdash._http import HTTPRequest, HTTPResponse, HTTPSession, HTTPSessionAiohttp
+from shmdash._http import HTTPRequest, HTTPResponse, HTTPSession, HTTPSessionDefault
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class Client:
         self._url = url
         self._api_key = api_key
         self._verify_ssl = verify_ssl
-        self._session = http_session if http_session else HTTPSessionAiohttp()
+        self._session = http_session if http_session else HTTPSessionDefault()
 
     async def __aenter__(self):
         return self
@@ -92,7 +92,7 @@ class Client:
             HTTPRequest(
                 method,
                 url,
-                body=json.dumps(json_body) if json_body else None,
+                content=json.dumps(json_body) if json_body else None,
                 headers={
                     "Content-Type": "application/json",
                     "UPLOAD-API-KEY": self._api_key,
@@ -222,7 +222,7 @@ class Client:
                     ],
                 },
             )
-            # expected reponse body:
+            # expected reponse content:
             # {
             #     "0": { "success": 2 },
             #     "1": { "error": "Key (abs_date_time)=(2018-09-27 15:51:14) already exists." }

@@ -145,7 +145,7 @@ async def test_setup(mock):
             "POST",
             URL_SETUP,
             headers=ANY,
-            body=json.dumps(SETUP_DICT),
+            content=json.dumps(SETUP_DICT),
         )
     )
 
@@ -181,7 +181,7 @@ async def test_setup_partial_existing(mock):
             "POST",
             URL_COMMANDS,
             headers=ANY,
-            body=ANY,
+            content=ANY,
         )
     )
 
@@ -202,7 +202,7 @@ async def test_add_attribute(mock):
             "POST",
             URL_COMMANDS,
             headers=ANY,
-            body=json.dumps(
+            content=json.dumps(
                 {
                     "commands": [
                         {
@@ -241,7 +241,7 @@ async def test_add_virtual_channel(mock):
             "POST",
             URL_COMMANDS,
             headers=ANY,
-            body=json.dumps(
+            content=json.dumps(
                 {
                     "commands": [
                         {
@@ -270,7 +270,7 @@ async def test_add_virtual_channel_attributes(mock):
             "POST",
             URL_COMMANDS,
             headers=ANY,
-            body=json.dumps(
+            content=json.dumps(
                 {
                     "commands": [
                         {
@@ -314,7 +314,7 @@ async def test_upload_data(mock):
             "POST",
             URL_DATA,
             headers=ANY,
-            body=json.dumps(
+            content=json.dumps(
                 {
                     "conflict": "IGNORE",
                     "data": [
@@ -334,7 +334,7 @@ async def test_upload_data_payload_too_large(mock):
     assert mock.http_session.request.await_count == 5
 
     def upload_data_count(await_args):
-        return len(json.loads(await_args[0][0].body)["data"])
+        return len(json.loads(await_args[0][0].content)["data"])
 
     assert upload_data_count(mock.http_session.request.await_args_list[0]) == 16
     assert upload_data_count(mock.http_session.request.await_args_list[1]) == 8
@@ -356,7 +356,7 @@ async def test_upload_annotation(mock):
             "POST",
             URL_ANNOTATION,
             headers=ANY,
-            body=json.dumps(annotation.to_dict()),
+            content=json.dumps(annotation.to_dict()),
         )
     )
 
