@@ -70,7 +70,6 @@ async def test_request_headers(mock):
                 "Content-Type": "application/json",
                 "UPLOAD-API-KEY": API_KEY,
             },
-            verify_ssl=ANY,
         )
     )
 
@@ -79,7 +78,7 @@ async def test_get_setup(mock):
     mock.http_session.request = AsyncMock(return_value=json_response(SETUP_DICT))
     setup = await mock.client.get_setup()
     mock.http_session.request.assert_awaited_once_with(
-        shmdash.HTTPRequest("GET", URL_SETUP, headers=ANY, verify_ssl=ANY)
+        shmdash.HTTPRequest("GET", URL_SETUP, headers=ANY)
     )
 
     assert len(setup.attributes) == 3
@@ -147,7 +146,6 @@ async def test_setup(mock):
             URL_SETUP,
             headers=ANY,
             body=json.dumps(SETUP_DICT),
-            verify_ssl=ANY,
         )
     )
 
@@ -167,7 +165,6 @@ async def test_setup_existing(mock):
             "GET",
             URL_SETUP,
             headers=ANY,
-            verify_ssl=ANY,
         )
     )
 
@@ -185,7 +182,6 @@ async def test_setup_partial_existing(mock):
             URL_COMMANDS,
             headers=ANY,
             body=ANY,
-            verify_ssl=ANY,
         )
     )
 
@@ -219,7 +215,6 @@ async def test_add_attribute(mock):
                     ]
                 }
             ),
-            verify_ssl=ANY,
         )
     )
 
@@ -257,7 +252,6 @@ async def test_add_virtual_channel(mock):
                     ]
                 }
             ),
-            verify_ssl=ANY,
         )
     )
 
@@ -287,7 +281,6 @@ async def test_add_virtual_channel_attributes(mock):
                     ]
                 }
             ),
-            verify_ssl=ANY,
         )
     )
 
@@ -329,7 +322,6 @@ async def test_upload_data(mock):
                     ],
                 }
             ),
-            verify_ssl=ANY,
         )
     )
 
@@ -365,7 +357,6 @@ async def test_upload_annotation(mock):
             URL_ANNOTATION,
             headers=ANY,
             body=json.dumps(annotation.to_dict()),
-            verify_ssl=ANY,
         )
     )
 
@@ -378,7 +369,6 @@ async def test_delete_data(mock):
             "DELETE",
             URL_DEV_DATA,
             headers=ANY,
-            verify_ssl=ANY,
         )
     )
 
@@ -397,7 +387,6 @@ async def test_recreate(mock):
             "GET",
             URL_DEV_RECREATE,
             headers=ANY,
-            verify_ssl=ANY,
         )
     )
 

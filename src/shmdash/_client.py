@@ -28,7 +28,7 @@ class Client:
         url: str,
         api_key: str,
         *,
-        verify_ssl: bool = False,
+        verify_ssl: bool = True,
         http_session: HTTPSession | None = None,
     ):
         """
