@@ -3,23 +3,23 @@ from urllib.parse import urlencode
 
 import pytest
 
-from shmdash import HTTPRequest, HTTPSessionAiohttp, RequestError
+from shmdash import HTTPRequest, HTTPSessionDefault, RequestError
 
 
 async def test_http_connection_failure():
-    async with HTTPSessionAiohttp() as session:
+    async with HTTPSessionDefault() as session:
         with pytest.raises(RequestError):
             await session.request(HTTPRequest("GET", "https://example.invalid"))
 
 
 async def test_http_timeout():
-    async with HTTPSessionAiohttp() as session:
+    async with HTTPSessionDefault() as session:
         with pytest.raises(RequestError):
             await session.request(HTTPRequest("GET", "https://postman-echo.com/delay/2", timeout=1))
 
 
 async def test_http_headers():
-    async with HTTPSessionAiohttp() as session:
+    async with HTTPSessionDefault() as session:
         response = await session.request(
             HTTPRequest(
                 "GET",
@@ -32,13 +32,13 @@ async def test_http_headers():
 
 
 async def test_http_status():
-    async with HTTPSessionAiohttp() as session:
+    async with HTTPSessionDefault() as session:
         response = await session.request(HTTPRequest("GET", "https://postman-echo.com/status/404"))
         assert response.status == 404
 
 
 async def test_http_get():
-    async with HTTPSessionAiohttp() as session:
+    async with HTTPSessionDefault() as session:
         response = await session.request(
             HTTPRequest("GET", "https://postman-echo.com/get", params={"param": "test"})
         )
@@ -53,7 +53,7 @@ async def test_http_get():
 
 
 async def test_http_post_form():
-    async with HTTPSessionAiohttp() as session:
+    async with HTTPSessionDefault() as session:
         response = await session.request(
             HTTPRequest(
                 "POST",
@@ -73,7 +73,7 @@ async def test_http_post_form():
 
 
 async def test_http_post_json():
-    async with HTTPSessionAiohttp() as session:
+    async with HTTPSessionDefault() as session:
         response = await session.request(
             HTTPRequest(
                 "POST",
@@ -88,7 +88,7 @@ async def test_http_post_json():
 
 
 async def test_http_delete():
-    async with HTTPSessionAiohttp() as session:
+    async with HTTPSessionDefault() as session:
         response = await session.request(HTTPRequest("DELETE", "https://postman-echo.com/delete"))
 
         assert response.url == "https://postman-echo.com/delete"

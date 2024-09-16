@@ -65,10 +65,10 @@ class HTTPSession(ABC):
         """Send an HTTP request."""
 
 
-# ------------------------------------ aiohttp implementation ------------------------------------ #
+# ------------------------------------ Default implementation ------------------------------------ #
 
 
-class HTTPSessionAiohttp(HTTPSession):
+class HTTPSessionDefault(HTTPSession):
     def __init__(self):
         self._session = httpx.AsyncClient()
 
