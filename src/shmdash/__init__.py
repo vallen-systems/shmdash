@@ -5,10 +5,10 @@ from shmdash._datatypes import (
     Annotation,
     Attribute,
     AttributeType,
+    Data,
     DiagramScale,
     Setup,
     Severity,
-    UploadData,
     VirtualChannel,
 )
 from shmdash._exceptions import ClientError, RequestError, ResponseError

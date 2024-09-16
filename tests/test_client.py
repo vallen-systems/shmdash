@@ -291,7 +291,7 @@ async def test_add_virtual_channel_attributes_error(mock):
         await mock.client.add_virtual_channel_attributes("0", ["WindSpeed"])
 
 
-UPLOAD_DATA = shmdash.UploadData(
+UPLOAD_DATA = shmdash.Data(
     timestamp=datetime(
         year=2024,
         month=1,
