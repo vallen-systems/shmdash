@@ -239,7 +239,10 @@ class Client:
                         "Error uploading to virtual channel %s: %s", identifier, results["error"]
                     )
         except ResponseError as e:
-            if e.status == HTTPStatus.REQUEST_ENTITY_TOO_LARGE and len(data) > 1:
+            if (
+                e.status in (HTTPStatus.INTERNAL_SERVER_ERROR, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+                and len(data) > 1
+            ):
                 mid = len(data) // 2
                 logger.debug("Retry upload with smaller batch size: %d", mid)
                 await self.upload_data(virtual_channel_id, data[:mid])
